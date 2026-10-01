@@ -1,33 +1,24 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import { useId, useState } from "react";
 import { formatCell, plural } from "@/lib/format";
 import type { SqlResult } from "@/lib/types";
 
 function Chevron({ open }: { open: boolean }) {
   return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
+    <ChevronRight
       aria-hidden="true"
+      size={14}
+      strokeWidth={2.2}
       className={`shrink-0 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
-    >
-      <path
-        d="m5 3 4 4-4 4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    />
   );
 }
 
 function SyntheticBadge() {
   return (
-    <span className="rounded bg-notice-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-notice">
+    <span className="tone-blush rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]">
       Synthetic data
     </span>
   );
@@ -36,7 +27,7 @@ function SyntheticBadge() {
 function ResultGrid({ columns, rows }: Pick<SqlResult, "columns" | "rows">) {
   if (rows.length === 0) {
     return (
-      <p className="px-4 py-3 text-sm text-muted">
+      <p className="px-4 py-3 text-sm text-normal-text">
         The query ran and matched no rows, so there is nothing to show.
       </p>
     );
@@ -47,17 +38,17 @@ function ResultGrid({ columns, rows }: Pick<SqlResult, "columns" | "rows">) {
       role="region"
       tabIndex={0}
       aria-label="Query result"
-      className="max-h-80 overflow-auto border-t border-line"
+      className="max-h-80 scroll-themed overflow-auto border-t border-border"
     >
       <table className="w-full border-collapse text-left font-mono text-[12.5px]">
         <caption className="sr-only">{plural(rows.length, "row")} returned</caption>
-        <thead className="sticky top-0 bg-sunken">
+        <thead className="surface-sunken sticky top-0">
           <tr>
             {columns.map((column, index) => (
               <th
                 key={column}
                 scope="col"
-                className={`whitespace-nowrap border-b border-line px-3 py-2 font-semibold text-muted ${numericColumns[index] ? "text-right" : ""}`}
+                className={`whitespace-nowrap border-b border-border px-3 py-2 font-semibold text-normal-text ${numericColumns[index] ? "text-right" : ""}`}
               >
                 {column}
               </th>
@@ -66,12 +57,12 @@ function ResultGrid({ columns, rows }: Pick<SqlResult, "columns" | "rows">) {
         </thead>
         <tbody>
           {rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className="odd:bg-surface even:bg-bg/60">
+            <tr key={rowIndex} className="even:bg-foreground/[0.03]">
               {row.map((cell, cellIndex) => (
                 <td
                   key={cellIndex}
                   title={formatCell(cell)}
-                  className={`max-w-[28ch] truncate whitespace-nowrap px-3 py-1.5 ${typeof cell === "number" ? "text-right tabular-nums" : ""} ${cell === null ? "text-faint" : "text-ink"}`}
+                  className={`max-w-[28ch] truncate whitespace-nowrap px-3 py-1.5 ${typeof cell === "number" ? "text-right tabular-nums" : ""} ${cell === null ? "text-foreground/60" : "text-foreground"}`}
                 >
                   {formatCell(cell)}
                 </td>
@@ -86,7 +77,7 @@ function ResultGrid({ columns, rows }: Pick<SqlResult, "columns" | "rows">) {
 
 function SqlBlock({ sql }: { sql: string }) {
   return (
-    <pre className="overflow-x-auto bg-code px-4 py-3.5 font-mono text-[12.5px] leading-relaxed text-code-ink">
+    <pre className="tone-ink scroll-themed overflow-x-auto px-4 py-3.5 font-mono text-[12.5px] leading-relaxed">
       <code>{sql}</code>
     </pre>
   );
@@ -117,11 +108,11 @@ function Toggle({ open, controls, label, onToggle, trailing }: ToggleProps) {
       onClick={onToggle}
       aria-expanded={open}
       aria-controls={controls}
-      className="flex w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-1.5 px-4 py-3 text-left text-sm font-medium text-ink"
+      className="flex w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-1.5 px-4 py-3 text-left text-sm font-medium"
     >
       <Chevron open={open} />
       <span className="whitespace-nowrap">{label}</span>
-      {trailing ? <span className="ml-auto flex items-center gap-2 whitespace-nowrap text-xs text-muted">{trailing}</span> : null}
+      {trailing ? <span className="ml-auto flex items-center gap-2 whitespace-nowrap text-xs text-normal-text">{trailing}</span> : null}
     </button>
   );
 }
@@ -135,14 +126,14 @@ export function SqlDisclosure({ result }: { result: SqlResult }) {
     return (
       <section
         aria-label="Query refused by the safety check"
-        className="overflow-hidden rounded-xl border border-refusal/40 bg-refusal-soft"
+        className="tone-sage overflow-hidden rounded-xl"
       >
         <div className="px-4 pt-4">
-          <h3 className="text-sm font-semibold text-refusal">
+          <h3 className="text-sm font-semibold">
             The safety check stopped this query before it ran
           </h3>
-          <p className="mt-1.5 text-[15px] leading-snug text-ink">{result.rejected}</p>
-          <p className="mt-2 text-[13px] leading-snug text-muted">
+          <p className="mt-1.5 text-[15px] leading-snug">{result.rejected}</p>
+          <p className="mt-2 text-[13px] leading-snug opacity-80">
             Nothing was executed. Only a single read-only SELECT over approved tables is ever
             allowed, so a refusal is the guardrail working as designed.
           </p>
@@ -163,7 +154,7 @@ export function SqlDisclosure({ result }: { result: SqlResult }) {
   return (
     <section
       aria-label="Generated SQL and result"
-      className="overflow-hidden rounded-xl border border-line bg-surface shadow-card"
+      className="overflow-hidden rounded-xl border border-border"
     >
       <Toggle
         open={open}

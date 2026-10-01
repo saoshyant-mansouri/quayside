@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import type { ToolEvent } from "@/lib/types";
 
 const LABELS: Record<string, { active: string; done: string }> = {
@@ -20,11 +21,11 @@ type ToolStatusProps = { tools: ToolEvent[]; waiting: boolean };
 
 export function ToolStatus({ tools, waiting }: ToolStatusProps) {
   return (
-    <ul className="flex min-h-6 flex-wrap items-center gap-x-5 gap-y-1 text-[13px] text-muted">
+    <ul className="flex min-h-6 flex-wrap items-center gap-x-5 gap-y-1 text-[13px] text-normal-text">
       {tools.length === 0 && waiting ? (
         <li className="flex items-center gap-2">
           <span className="flex size-3 items-center justify-center">
-            <span className="size-1.5 rounded-full bg-accent motion-safe:animate-pulse" />
+            <span className="size-1.5 rounded-full bg-olive motion-safe:animate-pulse" />
           </span>
           Working…
         </li>
@@ -33,18 +34,9 @@ export function ToolStatus({ tools, waiting }: ToolStatusProps) {
         <li key={`${tool.name}-${index}`} className="flex items-center gap-2">
           <span className="flex size-3 items-center justify-center">
             {tool.status === "completed" ? (
-              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" className="text-ok">
-                <path
-                  d="M2.5 6.4 5 8.8l4.5-5.2"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Check aria-hidden="true" size={12} strokeWidth={2.5} className="text-foreground" />
             ) : (
-              <span className="size-1.5 rounded-full bg-accent motion-safe:animate-pulse" />
+              <span className="size-1.5 rounded-full bg-olive motion-safe:animate-pulse" />
             )}
           </span>
           <span>{labelFor(tool)}</span>

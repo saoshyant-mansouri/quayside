@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUp, Square } from "lucide-react";
 import { useRef, useState } from "react";
 
 type ComposerProps = {
@@ -28,14 +29,15 @@ export function Composer({ streaming, hasConversation, onSend, onStop, onReset }
   }
 
   return (
-    <div className="sticky bottom-0 z-10 border-t border-line bg-bg/90 backdrop-blur">
+    <div data-composer className="sticky bottom-0 z-10 border-t border-foreground/5 bg-background md:bg-background/80 md:backdrop-blur-md">
       <div className="mx-auto max-w-5xl px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
         <form
+          aria-label="Ask a question"
           onSubmit={(event) => {
             event.preventDefault();
             submit();
           }}
-          className="flex items-end gap-2 rounded-2xl border border-line-strong bg-surface p-2 shadow-card transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25"
+          className="flex items-end gap-2 rounded-3xl border border-foreground/20 bg-background p-2 transition-colors focus-within:border-foreground focus-within:ring-2 focus-within:ring-olive/50"
         >
           <label htmlFor="question" className="sr-only">
             Ask a question about MSC
@@ -53,34 +55,35 @@ export function Composer({ streaming, hasConversation, onSend, onStop, onReset }
                 submit();
               }
             }}
-            className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-3 py-2.5 text-base leading-6 text-ink [field-sizing:content] placeholder:text-faint focus-visible:outline-none"
+            className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-3 py-2.5 text-base leading-6 text-foreground [field-sizing:content] placeholder:text-foreground/60 focus-visible:outline-none"
           />
           {streaming ? (
             <button
               type="button"
               onClick={stop}
-              className="flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-line-strong bg-sunken px-4 text-sm font-semibold text-ink transition-colors hover:border-ink"
+              className="flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-foreground/20 px-4 text-sm font-semibold text-foreground transition-colors hover:bg-foreground/5"
             >
-              <span aria-hidden="true" className="size-2.5 rounded-[2px] bg-ink" />
+              <Square aria-hidden="true" size={12} fill="currentColor" />
               Stop
             </button>
           ) : (
             <button
               type="submit"
               disabled={!canSend}
-              className="h-11 shrink-0 cursor-pointer rounded-xl bg-accent px-5 text-sm font-semibold text-accent-ink transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+              className="tone-olive flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-5 text-sm font-semibold transition-[filter,opacity] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Ask
+              <ArrowUp aria-hidden="true" size={16} />
             </button>
           )}
         </form>
-        <div className="mt-2 flex items-center justify-between gap-4 text-[11px] leading-snug text-faint">
+        <div className="mt-2 flex items-center justify-between gap-4 text-[11px] leading-snug text-foreground/60">
           <p>Independent demonstration, not affiliated with MSC. Operational data is synthetic.</p>
           {hasConversation ? (
             <button
               type="button"
               onClick={onReset}
-              className="shrink-0 cursor-pointer font-medium text-muted underline underline-offset-2 hover:text-ink"
+              className="shrink-0 cursor-pointer font-medium text-normal-text underline underline-offset-2 hover:text-foreground"
             >
               New conversation
             </button>

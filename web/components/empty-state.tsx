@@ -1,7 +1,9 @@
 "use client";
 
+import { ArrowUpRight, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchExamples } from "@/lib/api";
+import { isRefusalExample } from "@/lib/refusal";
 import type { Example } from "@/lib/types";
 
 type ExamplesState = { kind: "loading" } | { kind: "ready"; examples: Example[] } | { kind: "down" };
@@ -25,53 +27,75 @@ export function EmptyState({ onAsk }: EmptyStateProps) {
     <section aria-labelledby="intro-heading" className="pb-8 pt-10 sm:pt-16">
       <h1
         id="intro-heading"
-        className="max-w-2xl font-serif text-[2rem] font-normal leading-[1.12] tracking-tight sm:text-5xl"
+        className="font-display max-w-3xl text-[1.7rem] uppercase leading-[1.02] sm:text-4xl md:text-5xl"
       >
         Ask about MSC. See where every answer comes from.
       </h1>
-      <p className="mt-5 max-w-xl text-base text-muted">
+      <p className="mt-5 max-w-xl text-base text-normal-text">
         Answers are drawn only from MSC&rsquo;s public website and LinkedIn posts. Each claim
         carries a numbered source you can open, and when the assistant writes SQL, the query and
         its result are shown rather than hidden.
       </p>
 
-      <h2 className="mb-3 mt-10 text-xs font-semibold uppercase tracking-[0.08em] text-faint">
+      <h2 className="mb-3 mt-10 text-xs font-semibold uppercase tracking-[0.08em] text-foreground/60">
         Try one
       </h2>
+      <p className="mb-4 max-w-xl text-sm text-normal-text">
+        Each card says what it demonstrates. One of them is meant to refuse.
+      </p>
 
       {state.kind === "loading" ? (
         <div aria-hidden="true" className="grid gap-3 sm:grid-cols-2">
           {[0, 1, 2, 3].map((slot) => (
             <div
               key={slot}
-              className="h-[104px] rounded-xl border border-line bg-surface motion-safe:animate-pulse"
+              className="h-[104px] rounded-xl border border-border bg-foreground/5 motion-safe:animate-pulse"
             />
           ))}
         </div>
       ) : null}
 
       {state.kind === "down" ? (
-        <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">
+        <p className="rounded-xl border border-border p-4 text-sm text-normal-text">
           Example questions are unavailable right now. You can still type your own below.
         </p>
       ) : null}
 
       {state.kind === "ready" ? (
         <ul className="grid gap-3 sm:grid-cols-2">
-          {state.examples.map((example) => (
-            <li key={example.question}>
-              <button
-                type="button"
-                onClick={() => onAsk(example.question)}
-                className="group flex h-full w-full cursor-pointer flex-col items-start gap-3 rounded-xl border border-line bg-surface p-4 text-left shadow-card transition-[border-color,transform] duration-150 hover:border-accent motion-safe:hover:-translate-y-px"
-              >
-                <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-accent">
-                  {example.label}
-                </span>
-                <span className="text-[15px] leading-snug text-ink">{example.question}</span>
-              </button>
-            </li>
-          ))}
+          {state.examples.map((example) => {
+            const refusal = isRefusalExample(example.label);
+            return (
+              <li key={example.question}>
+                <button
+                  type="button"
+                  onClick={() => onAsk(example.question)}
+                  className="group flex h-full w-full cursor-pointer flex-col items-start gap-3 rounded-xl border border-border p-4 text-left transition-[border-color,background-color] duration-150 hover:border-olive hover:bg-olive/10"
+                >
+                  <span className="flex w-full items-center justify-between gap-3">
+                    <span
+                      className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.06em] ${refusal ? "tone-sage" : "bg-foreground text-background"}`}
+                    >
+                      {refusal ? <ShieldCheck aria-hidden="true" size={14} /> : null}
+                      {example.label}
+                    </span>
+                    <ArrowUpRight
+                      aria-hidden="true"
+                      size={18}
+                      className="shrink-0 text-foreground/40 transition-colors group-hover:text-foreground"
+                    />
+                  </span>
+                  <span className="text-[15px] leading-snug text-foreground">{example.question}</span>
+                  {refusal ? (
+                    <span className="text-[13px] leading-snug text-normal-text">
+                      This one should refuse. The figure is not in the sources, and inventing it
+                      would be worse than saying so.
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
     </section>

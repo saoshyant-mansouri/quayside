@@ -55,7 +55,7 @@ function AnswerMarkdownView({
               onClick={() => onSelectCitation(n)}
               aria-label={`Source ${n}: ${titleOf.get(n) ?? ""}`}
               aria-pressed={activeNumber === n}
-              className="ml-0.5 inline-flex min-w-[1.6em] cursor-pointer items-center justify-center rounded-md bg-accent-soft px-1 align-baseline font-sans text-[0.68em] font-semibold leading-[1.7] text-accent transition-colors hover:bg-accent hover:text-accent-ink aria-pressed:bg-accent aria-pressed:text-accent-ink"
+              className="ml-0.5 inline-flex min-w-[1.6em] cursor-pointer items-center justify-center rounded-md bg-olive/25 px-1 align-baseline text-[0.68em] font-semibold leading-[1.7] text-foreground transition-colors hover:bg-olive hover:text-ink aria-pressed:bg-olive aria-pressed:text-ink"
             >
               {children}
             </button>

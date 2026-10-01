@@ -6,17 +6,29 @@ import { chatReducer, lastConversationId } from "@/lib/chat-state";
 import { AssistantMessage } from "./assistant-message";
 import { Composer } from "./composer";
 import { EmptyState } from "./empty-state";
-import { Header } from "./header";
 
 const NEAR_BOTTOM_PX = 160;
+const MAIN_BOTTOM_PADDING_PX = 40;
 let nextMessageId = 0;
 const makeMessageId = () => `message-${(nextMessageId += 1)}`;
 
-const isNearBottom = () =>
-  window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - NEAR_BOTTOM_PX;
+const followTarget = (root: HTMLElement, log: HTMLElement) => {
+  const composer = root.querySelector("[data-composer]");
+  return (
+    log.getBoundingClientRect().bottom +
+    window.scrollY +
+    MAIN_BOTTOM_PADDING_PX +
+    (composer?.getBoundingClientRect().height ?? 0)
+  );
+};
+
+const isNearBottom = (root: HTMLElement, log: HTMLElement) =>
+  window.innerHeight + window.scrollY >= followTarget(root, log) - NEAR_BOTTOM_PX;
 
 export function Chat() {
   const [messages, dispatch] = useReducer(chatReducer, []);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const followStreamRef = useRef(true);
   const streaming = messages.some(
@@ -25,7 +37,9 @@ export function Chat() {
 
   useEffect(() => {
     const onScroll = () => {
-      followStreamRef.current = isNearBottom();
+      if (rootRef.current && logRef.current) {
+        followStreamRef.current = isNearBottom(rootRef.current, logRef.current);
+      }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -34,8 +48,8 @@ export function Chat() {
   useEffect(() => () => abortRef.current?.abort(), []);
 
   useEffect(() => {
-    if (messages.length > 0 && followStreamRef.current) {
-      window.scrollTo({ top: document.documentElement.scrollHeight });
+    if (messages.length > 0 && followStreamRef.current && rootRef.current && logRef.current) {
+      window.scrollTo({ top: followTarget(rootRef.current, logRef.current) - window.innerHeight });
     }
   }, [messages]);
 
@@ -84,16 +98,15 @@ export function Chat() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <Header />
+    <div ref={rootRef} className="flex flex-1 flex-col">
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-10 sm:px-6">
         {messages.length === 0 ? <EmptyState onAsk={send} /> : null}
-        <div role="log" aria-label="Conversation" className="flex flex-col gap-6 pt-8">
+        <div ref={logRef} role="log" aria-label="Conversation" className="flex flex-col gap-6 pt-8">
           {messages.map((message) =>
             message.role === "user" ? (
               <h2
                 key={message.id}
-                className="max-w-3xl mt-6 border-t border-line pt-8 font-serif text-[1.65rem] font-normal leading-tight tracking-tight first:mt-0 first:border-t-0 first:pt-0 sm:text-3xl"
+                className="font-display mt-6 max-w-3xl border-t border-border pt-8 text-xl leading-tight first:mt-0 first:border-t-0 first:pt-0 sm:text-2xl"
               >
                 <span className="sr-only">You asked: </span>
                 {message.text}
