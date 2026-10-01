@@ -75,7 +75,7 @@ public sealed class LifecycleTests
     }
 
     [Fact]
-    public async Task Examples_are_exactly_the_four_documented_ones()
+    public async Task Examples_are_exactly_the_four_offered_questions()
     {
         using var host = new ApiHost();
 
@@ -88,10 +88,10 @@ public sealed class LifecycleTests
             .ToArray();
         Assert.Equal(
             [
-                ("Grounded RAG", "What is MSC's position on alternative marine fuels?"),
-                ("NL to SQL", "Which five ports had the most import containers last quarter?"),
-                ("Tool call", "Track container MSCU1234567."),
-                ("Correct refusal", "What was MSC's net profit in 2024?"),
+                ("Sustainability", "What is MSC doing about alternative marine fuels and decarbonisation?"),
+                ("Services", "What does MSC say about reefer and cold chain solutions?"),
+                ("Demo database", "Which five ports have the most container movements?"),
+                ("Offices", "Where are MSC Technology's offices?"),
             ],
             actual);
         Assert.All(examples.EnumerateArray(), e => Assert.Equal(["label", "question"], e.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal)));
