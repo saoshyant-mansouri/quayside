@@ -1,0 +1,134 @@
+name: Cost Guard
+
+# infra/terraform/modules/cost_guard only emails at 50/80/100% of the budget.
+# The stop has to live here: an Azure Automation runbook cannot be deployed on
+# this subscription because the regions Automation supports and the regions
+# its policy allows do not overlap (see infra/README.md, "Cost guard").
+#
+# This workflow is the only thing standing between a runaway bill and the
+# card, so every failure path exits non-zero. A cost check that cannot read
+# the cost must turn the run red, never pass quietly.
+
+on:
+  schedule:
+    # Azure cost data lags actual spend by hours; polling faster buys nothing.
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: cost-guard
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  RESOURCE_GROUP: rg-quayside-dev
+  BUDGET_NAME: budget-quayside-dev
+  API_APP: ca-quayside-dev-api
+
+jobs:
+  check-and-stop:
+    name: Check spend, scale the API to zero if over budget
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure login
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Read the budget and month-to-date spend
+        id: cost
+        env:
+          SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          set -euo pipefail
+          scope="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+
+          budget=$(az rest --method get \
+            --url "https://management.azure.com${scope}/providers/Microsoft.Consumption/budgets/${BUDGET_NAME}?api-version=2023-05-01" \
+            --query properties.amount -o tsv)
+
+          # The Cost Management query API throttles with 429, so retry before failing.
+          response=""
+          for attempt in 1 2 3 4; do
+            if response=$(az rest --method post \
+              --url "https://management.azure.com${scope}/providers/Microsoft.CostManagement/query?api-version=2023-11-01" \
+              --body '{"type":"ActualCost","timeframe":"MonthToDate","dataset":{"granularity":"None","aggregation":{"totalCost":{"name":"PreTaxCost","function":"Sum"}}}}' \
+              -o json); then
+              break
+            fi
+            response=""
+            echo "Cost query attempt $attempt failed"
+            sleep $((attempt * 20))
+          done
+          if [ -z "$response" ]; then
+            echo "::error::Cost Management query for $RESOURCE_GROUP failed after 4 attempts. Spend is unknown, so the guard cannot vouch for it."
+            exit 1
+          fi
+
+          # Azure returns no rows at all before the first charge of the month.
+          row_count=$(echo "$response" | jq '.properties.rows | length')
+          if [ "$row_count" = "0" ]; then
+            spend=0
+          else
+            spend=$(echo "$response" | jq -r '.properties.rows[0][0]')
+          fi
+
+          over=$(python3 - "$spend" "$budget" <<'PY'
+          import sys
+          try:
+              spend, budget = float(sys.argv[1]), float(sys.argv[2])
+          except ValueError:
+              sys.stderr.write("spend=%r budget=%r are not numbers\n" % (sys.argv[1], sys.argv[2]))
+              sys.exit(1)
+          if budget <= 0:
+              sys.stderr.write("budget=%r is not positive\n" % budget)
+              sys.exit(1)
+          print("true" if spend >= budget else "false")
+          PY
+          )
+
+          echo "Month-to-date spend $spend of budget $budget"
+          {
+            echo "spend=$spend"
+            echo "budget=$budget"
+            echo "over=$over"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Scale the API to zero
+        if: steps.cost.outputs.over == 'true'
+        env:
+          SPEND: ${{ steps.cost.outputs.spend }}
+          BUDGET: ${{ steps.cost.outputs.budget }}
+        run: |
+          set -euo pipefail
+          echo "::warning::Month-to-date spend $SPEND has reached the budget of $BUDGET for $RESOURCE_GROUP. Scaling $API_APP to zero."
+
+          max_replicas=$(az containerapp show --name "$API_APP" --resource-group "$RESOURCE_GROUP" \
+            --query properties.template.scale.maxReplicas -o tsv)
+
+          if [ "$max_replicas" = "0" ]; then
+            echo "$API_APP is already scaled to zero."
+          else
+            az containerapp update --name "$API_APP" --resource-group "$RESOURCE_GROUP" \
+              --min-replicas 0 --max-replicas 0
+          fi
+
+          {
+            echo "## Cost guard triggered"
+            echo "Month-to-date spend $SPEND reached the budget of $BUDGET."
+            echo "\`$API_APP\` is scaled to zero. Nothing was deleted."
+            echo ""
+            echo "**To resume:** re-run \`terraform apply\` in \`infra/terraform\` to restore the replica counts."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Within budget
+        if: steps.cost.outputs.over == 'false'
+        env:
+          SPEND: ${{ steps.cost.outputs.spend }}
+          BUDGET: ${{ steps.cost.outputs.budget }}
+        run: echo "Month-to-date spend $SPEND is within the budget of $BUDGET. No action taken."

@@ -1,0 +1,118 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - src/**
+      - data/**
+      - Dockerfile
+      - .dockerignore
+      - .github/workflows/deploy.yml
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: quayside-api
+  RESOURCE_GROUP: rg-quayside-dev
+  API_APP: ca-quayside-dev-api
+  INGEST_JOB: caj-quayside-dev-ingest
+
+jobs:
+  build-and-push:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.sha_ref }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Resolve image reference
+        id: image
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          # OCI references must be lowercase; the GitHub owner name may not be.
+          owner=$(echo "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+          {
+            echo "repository=ghcr.io/$owner/$IMAGE_NAME"
+            echo "sha_ref=ghcr.io/$owner/$IMAGE_NAME:$GITHUB_SHA"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.image.outputs.repository }}:${{ github.sha }}
+            ${{ steps.image.outputs.repository }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Roll out to Azure Container Apps
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Azure login
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update API app and ingest job
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          az containerapp update \
+            --name "$API_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$IMAGE"
+
+          az containerapp job update \
+            --name "$INGEST_JOB" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$IMAGE"
+
+      - name: Wait for the new revision to answer
+        run: |
+          fqdn=$(az containerapp show --name "$API_APP" --resource-group "$RESOURCE_GROUP" \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --max-time 10 "https://$fqdn/api/health"; then
+              echo
+              exit 0
+            fi
+            echo "attempt $attempt: not healthy yet"
+            sleep 10
+          done
+          echo "::error::https://$fqdn/api/health did not return success within 5 minutes"
+          exit 1

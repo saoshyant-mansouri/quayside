@@ -1,0 +1,204 @@
+name: $(Date:yyyyMMdd)$(Rev:.r)
+
+trigger:
+  branches:
+    include:
+      - "*"
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - name: DOTNET_NOLOGO
+    value: "true"
+  - name: DOTNET_CLI_TELEMETRY_OPTOUT
+    value: "true"
+  - name: NUGET_PACKAGES
+    value: $(Pipeline.Workspace)/.nuget/packages
+  - name: pnpmStorePath
+    value: $(Pipeline.Workspace)/.pnpm-store
+  - name: terraformVersion
+    value: 1.9.8
+  - name: imageName
+    value: quayside-api
+  - name: resourceGroup
+    value: rg-quayside-dev
+  - name: apiApp
+    value: ca-quayside-dev-api
+  - name: ingestJob
+    value: caj-quayside-dev-ingest
+  - group: quayside-deploy
+
+stages:
+  - stage: CI
+    displayName: Build and verify
+    jobs:
+      - job: DotNet
+        displayName: .NET build, test, format
+        steps:
+          - task: UseDotNet@2
+            displayName: Install .NET 10 SDK
+            inputs:
+              packageType: sdk
+              version: 10.0.x
+
+          - task: Cache@2
+            displayName: Cache NuGet packages
+            inputs:
+              key: 'nuget | "$(Agent.OS)" | **/*.csproj'
+              restoreKeys: |
+                nuget | "$(Agent.OS)"
+              path: $(NUGET_PACKAGES)
+
+          - script: dotnet restore Quayside.slnx
+            displayName: Restore
+
+          - script: dotnet build Quayside.slnx -c Release --no-restore
+            displayName: Build
+
+          - script: dotnet test Quayside.slnx -c Release --no-build --logger trx --results-directory $(Agent.TempDirectory)/test-results
+            displayName: Test
+
+          - task: PublishTestResults@2
+            displayName: Publish test results
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: VSTest
+              testResultsFiles: "**/*.trx"
+              searchFolder: $(Agent.TempDirectory)/test-results
+
+          - script: dotnet format Quayside.slnx --verify-no-changes --no-restore
+            displayName: Verify formatting
+
+      - job: Web
+        displayName: Web lint, typecheck, build
+        steps:
+          - task: NodeTool@0
+            displayName: Install Node 22
+            inputs:
+              versionSpec: 22.x
+
+          - script: |
+              corepack enable
+              corepack prepare pnpm@10.6.3 --activate
+              pnpm config set store-dir $(pnpmStorePath)
+            displayName: Install pnpm 10
+
+          - task: Cache@2
+            displayName: Cache pnpm store
+            inputs:
+              key: 'pnpm | "$(Agent.OS)" | web/pnpm-lock.yaml'
+              restoreKeys: |
+                pnpm | "$(Agent.OS)"
+              path: $(pnpmStorePath)
+
+          - script: pnpm install --frozen-lockfile
+            displayName: Install dependencies
+            workingDirectory: web
+
+          - script: pnpm lint
+            displayName: Lint
+            workingDirectory: web
+
+          - script: pnpm typecheck
+            displayName: Typecheck
+            workingDirectory: web
+
+          - script: pnpm build
+            displayName: Build
+            workingDirectory: web
+
+      - job: Terraform
+        displayName: Terraform fmt and validate
+        steps:
+          - script: |
+              set -euo pipefail
+              curl -fsSLo terraform.zip "https://releases.hashicorp.com/terraform/$(terraformVersion)/terraform_$(terraformVersion)_linux_amd64.zip"
+              sudo unzip -o terraform.zip terraform -d /usr/local/bin
+              terraform version
+            displayName: Install Terraform $(terraformVersion)
+
+          - script: terraform fmt -check -recursive
+            displayName: Format
+            workingDirectory: infra
+
+          - script: |
+              set -euo pipefail
+              for dir in infra/terraform infra/bootstrap; do
+                echo "=== $dir"
+                terraform -chdir="$dir" init -backend=false -input=false
+                terraform -chdir="$dir" validate
+              done
+            displayName: Init and validate
+
+  - stage: Deploy
+    displayName: Build image and roll out
+    dependsOn: CI
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - deployment: DeployDev
+        displayName: Deploy to rg-quayside-dev
+        environment: quayside-dev
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: Docker@2
+                  displayName: Build and push image to ghcr.io
+                  inputs:
+                    command: buildAndPush
+                    containerRegistry: $(ghcrServiceConnection)
+                    repository: $(ghcrOwner)/$(imageName)
+                    Dockerfile: Dockerfile
+                    buildContext: $(Build.SourcesDirectory)
+                    tags: |
+                      $(Build.SourceVersion)
+                      latest
+
+                - task: AzureCLI@2
+                  displayName: Update API app and ingest job
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      image="ghcr.io/$(ghcrOwner)/$(imageName):$(Build.SourceVersion)"
+
+                      az containerapp update \
+                        --name "$(apiApp)" \
+                        --resource-group "$(resourceGroup)" \
+                        --image "$image"
+
+                      az containerapp job update \
+                        --name "$(ingestJob)" \
+                        --resource-group "$(resourceGroup)" \
+                        --image "$image"
+
+                - task: AzureCLI@2
+                  displayName: Wait for the new revision to answer
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      fqdn=$(az containerapp show --name "$(apiApp)" --resource-group "$(resourceGroup)" \
+                        --query properties.configuration.ingress.fqdn -o tsv)
+                      for attempt in $(seq 1 30); do
+                        if curl --fail --silent --show-error --max-time 10 "https://$fqdn/api/health"; then
+                          echo
+                          exit 0
+                        fi
+                        echo "attempt $attempt: not healthy yet"
+                        sleep 10
+                      done
+                      echo "##vso[task.logissue type=error]https://$fqdn/api/health did not return success within 5 minutes"
+                      exit 1
