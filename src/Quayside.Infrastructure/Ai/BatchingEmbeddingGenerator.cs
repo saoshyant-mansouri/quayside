@@ -6,8 +6,8 @@ namespace Quayside.Infrastructure.Ai;
 
 public sealed class BatchingEmbeddingGenerator : DelegatingEmbeddingGenerator<string, Embedding<float>>
 {
-    public const int DefaultBatchSize = 256;
-    public const int DefaultConcurrency = 4;
+    public const int DefaultBatchSize = 32;
+    public const int DefaultConcurrency = 2;
 
     private readonly int batchSize;
     private readonly int concurrency;

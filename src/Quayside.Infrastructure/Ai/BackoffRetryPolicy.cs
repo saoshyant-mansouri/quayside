@@ -5,10 +5,10 @@ namespace Quayside.Infrastructure.Ai;
 
 public sealed class BackoffRetryPolicy : ClientRetryPolicy
 {
-    public const int DefaultMaxRetries = 5;
+    public const int DefaultMaxRetries = 8;
 
     private static readonly TimeSpan DefaultBaseDelay = TimeSpan.FromMilliseconds(500);
-    private static readonly TimeSpan DefaultMaxDelay = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DefaultMaxDelay = TimeSpan.FromSeconds(90);
 
     private readonly TimeSpan baseDelay;
     private readonly TimeSpan maxDelay;
