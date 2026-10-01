@@ -1,3 +1,4 @@
+using Quayside.Api.Orchestration;
 using Quayside.Core.Documents;
 using Quayside.Core.Grounding;
 using Quayside.Core.Retrieval;
@@ -90,6 +91,56 @@ public sealed class CitationTests
         Assert.Equal(0, report.Uncited);
         Assert.Equal(0, report.Cited);
         Assert.Empty(report.UnsupportedSentences);
+    }
+
+    [Theory]
+    [InlineData("I can answer questions from MSC's public posts and web pages, with sources.")]
+    [InlineData("I can also look up synthetic demo data on containers, vessels, ports and schedules.")]
+    [InlineData("I can search the MSC material for that if you tell me which service you mean.")]
+    [InlineData("I can query the demo database for counts and rankings.")]
+    [InlineData("I can explain how the sources are cited.")]
+    [InlineData("I'm able to retrieve sailing schedules from the demo data.")]
+    [InlineData("I can list the ports in the demo data.")]
+    public void First_person_capability_offers_are_not_uncited_claims(string answer)
+    {
+        var report = CitationEnforcer.Check(answer, TwoCitations);
+
+        Assert.Equal(0, report.Uncited);
+        Assert.Equal(0, report.Cited);
+    }
+
+    [Theory]
+    [InlineData("I can confirm MSC operates 800 vessels.")]
+    [InlineData("I can confirm that MSC is the largest carrier in the world.")]
+    [InlineData("I can say that MSC operates the largest fleet.")]
+    [InlineData("I can show that MSC operates 800 vessels.")]
+    [InlineData("I can explain that MSC runs 24 services.")]
+    [InlineData("I can answer this: MSC has 800 vessels.")]
+    [InlineData("I can tell you MSC has hubs in Antwerp.")]
+    public void First_person_statements_that_assert_a_fact_still_count_as_claims(string answer)
+    {
+        var report = CitationEnforcer.Check(answer, TwoCitations);
+
+        Assert.Equal(1, report.Uncited);
+        Assert.Equal([answer], report.UnsupportedSentences);
+    }
+
+    [Fact]
+    public void A_capability_offer_does_not_launder_a_cited_fact_beside_it()
+    {
+        var report = CitationEnforcer.Check("I can also look up demo data. MSC operates a large fleet [1].", TwoCitations);
+
+        Assert.Equal(1, report.Cited);
+        Assert.Equal(0, report.Uncited);
+    }
+
+    [Fact]
+    public void The_canned_refusal_reports_no_uncited_claims()
+    {
+        var report = CitationEnforcer.Check(Prompts.Ungrounded("What was MSC's net profit in 2024?"), []);
+
+        Assert.Equal(0, report.Uncited);
+        Assert.Equal(0, report.Cited);
     }
 
     [Fact]

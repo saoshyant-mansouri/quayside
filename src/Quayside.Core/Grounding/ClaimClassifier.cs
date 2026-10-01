@@ -23,7 +23,7 @@ internal static partial class ClaimClassifier
             return false;
         }
 
-        if (Pleasantry().IsMatch(remainder) || Offer().IsMatch(remainder))
+        if (Pleasantry().IsMatch(remainder) || Offer().IsMatch(remainder) || Capability().IsMatch(remainder))
         {
             return false;
         }
@@ -65,6 +65,9 @@ internal static partial class ClaimClassifier
 
     [GeneratedRegex(@"^(?:please\s+)?(?:let me know|feel free|would you like|do you want|is there anything|i can (?:also )?(?:help|look)|i'?d be happy|i would be happy|if you(?:'d| would)? like)\b", RegexOptions.IgnoreCase)]
     private static partial Regex Offer();
+
+    [GeneratedRegex(@"^i(?:\s+can|'?m\s+able\s+to|\s+am\s+able\s+to)\s+(?:also\s+)?(?:answer|help|assist|look|search|query|find|show|check|list|explain|retrieve|summari[sz]e)\b(?!\s+that\b)[^0-9]*$", RegexOptions.IgnoreCase)]
+    private static partial Regex Capability();
 
     [GeneratedRegex(@"^(?:(?:unfortunately|sorry|i'?m sorry|i am sorry|sadly|regrettably|however)\s*,?\s*)*(?:i\s+(?:could\s*not|couldn'?t|can\s*not|can'?t|cannot|was\s+(?:not\s+able|unable)|am\s+(?:not\s+able|unable)|'?m\s+(?:not\s+able|unable)|do\s*not|don'?t)\s+(?:find|ground|answer|verify|confirm|provide|have|know|see|locate|support)|i\s+(?:do\s*not|don'?t)\s+know|there\s+(?:is|are)\s+no\s+(?:information|evidence|mention|source|sources|relevant)|no\s+(?:relevant\s+)?(?:information|sources?|evidence)\s+(?:was|were|is|are)?\s*(?:found|available|retrieved)|the\s+(?:retrieved\s+|available\s+)?(?:sources|documents|material|context)\s+(?:do\s*not|don'?t|does\s*not|doesn'?t|did\s*not|didn'?t)\s+(?:contain|mention|cover|include|say|state|provide|address))", RegexOptions.IgnoreCase)]
     private static partial Regex Refusal();

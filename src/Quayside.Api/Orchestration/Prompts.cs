@@ -19,7 +19,7 @@ public static class Prompts
     {
         var subject = question.Length <= 120 ? question : question[..120] + "...";
         return $"I could not find anything in the MSC material I have that supports an answer to \"{subject}\", so I will not guess. "
-            + "I can answer from MSC's public posts and web pages with sources, and look up synthetic demo data on containers, vessels, ports and schedules.";
+            + "Feel free to ask me about MSC's public posts and web pages, which I answer with sources, or about the synthetic demo data on containers, vessels, ports and schedules.";
     }
 
     public const string UnsourcedNote =

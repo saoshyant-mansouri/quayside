@@ -69,7 +69,7 @@ public sealed class GroundingGateTests
         Assert.Empty(result.Of("error"));
     }
 
-    [Fact(Skip = "Known defect: the canned refusal sentence 'I can answer from...' is classified as an uncited fact, so a refusal reports uncited 1.")]
+    [Fact]
     public async Task A_refusal_reports_no_uncited_claims()
     {
         using var host = new ApiHost(new ApiSettings { MinTopCosine = 0.99 });
