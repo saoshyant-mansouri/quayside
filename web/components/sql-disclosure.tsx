@@ -25,13 +25,7 @@ function SyntheticBadge() {
 }
 
 function ResultGrid({ columns, rows }: Pick<SqlResult, "columns" | "rows">) {
-  if (rows.length === 0) {
-    return (
-      <p className="px-4 py-3 text-sm text-normal-text">
-        The query ran and matched no rows, so there is nothing to show.
-      </p>
-    );
-  }
+  if (rows.length === 0) return null;
   const numericColumns = columns.map((_, index) => typeof rows[0]?.[index] === "number");
   return (
     <div
@@ -112,12 +106,24 @@ function Toggle({ open, controls, label, onToggle, trailing }: ToggleProps) {
     >
       <Chevron open={open} />
       <span className="whitespace-nowrap">{label}</span>
-      {trailing ? <span className="ml-auto flex items-center gap-2 whitespace-nowrap text-xs text-normal-text">{trailing}</span> : null}
+      {trailing ? (
+        <span className="ml-auto flex items-center gap-2 whitespace-nowrap text-xs text-normal-text">
+          {trailing}
+        </span>
+      ) : null}
     </button>
   );
 }
 
-export function SqlDisclosure({ result }: { result: SqlResult }) {
+export function NoRecordsNote() {
+  return (
+    <p className="text-[15px] leading-snug text-normal-text">
+      The demo database has no matching records for that.
+    </p>
+  );
+}
+
+export function SqlDisclosure({ result, technical }: { result: SqlResult; technical: boolean }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const toggle = () => setOpen((current) => !current);
@@ -134,44 +140,56 @@ export function SqlDisclosure({ result }: { result: SqlResult }) {
           </h3>
           <p className="mt-1.5 text-[15px] leading-snug">{result.rejected}</p>
           <p className="mt-2 text-[13px] leading-snug opacity-80">
-            Nothing was executed. Only a single read-only SELECT over approved tables is ever
-            allowed, so a refusal is the guardrail working as designed.
+            Nothing was run. Only read-only questions over approved data are ever allowed, so this
+            is the safety check working as designed.
           </p>
         </div>
-        <Toggle
-          open={open}
-          controls={panelId}
-          label="Show the SQL it tried to write"
-          onToggle={toggle}
-        />
-        <Reveal open={open} id={panelId}>
-          <SqlBlock sql={result.sql} />
-        </Reveal>
+        {technical ? (
+          <>
+            <Toggle
+              open={open}
+              controls={panelId}
+              label="Show the SQL it tried to write"
+              onToggle={toggle}
+            />
+            <Reveal open={open} id={panelId}>
+              <SqlBlock sql={result.sql} />
+            </Reveal>
+          </>
+        ) : (
+          <div className="pb-4" />
+        )}
       </section>
     );
   }
 
+  const empty = result.rows.length === 0;
+  if (!technical) return empty ? <NoRecordsNote /> : null;
+
   return (
-    <section
-      aria-label="Generated SQL and result"
-      className="overflow-hidden rounded-xl border border-border"
-    >
-      <Toggle
-        open={open}
-        controls={panelId}
-        label={open ? "Hide the SQL it wrote" : "Show the SQL it wrote"}
-        onToggle={toggle}
-        trailing={
-          <>
-            <span>{plural(result.rows.length, "row")}</span>
-            <SyntheticBadge />
-          </>
-        }
-      />
-      <Reveal open={open} id={panelId}>
-        <SqlBlock sql={result.sql} />
-        <ResultGrid columns={result.columns} rows={result.rows} />
-      </Reveal>
-    </section>
+    <>
+      {empty ? <NoRecordsNote /> : null}
+      <section
+        aria-label="Generated SQL and result"
+        className="overflow-hidden rounded-xl border border-border"
+      >
+        <Toggle
+          open={open}
+          controls={panelId}
+          label={open ? "Hide the SQL it wrote" : "Show the SQL it wrote"}
+          onToggle={toggle}
+          trailing={
+            <>
+              <span>{plural(result.rows.length, "row")}</span>
+              <SyntheticBadge />
+            </>
+          }
+        />
+        <Reveal open={open} id={panelId}>
+          <SqlBlock sql={result.sql} />
+          <ResultGrid columns={result.columns} rows={result.rows} />
+        </Reveal>
+      </section>
+    </>
   );
 }

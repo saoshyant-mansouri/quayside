@@ -19,4 +19,12 @@ export const isRefusal = (message: AssistantMessage): boolean =>
   !message.tools.some((tool) => OPERATIONAL_TOOLS.has(tool.name)) &&
   REFUSAL_OPENING.test(message.text);
 
-export const isRefusalExample = (label: string): boolean => /refus/i.test(label);
+const BARE_EMPTY_RESULT = /\b(?:0|zero|no)\b[^.\n]{0,40}\b(?:rows?|records?|results?|matches)\b/i;
+const BARE_EMPTY_RESULT_MAX_CHARS = 160;
+
+export const isBareEmptyResult = (message: AssistantMessage): boolean =>
+  message.sql !== null &&
+  message.sql.rejected === null &&
+  message.sql.rows.length === 0 &&
+  message.text.length < BARE_EMPTY_RESULT_MAX_CHARS &&
+  (message.phase === "streaming" || BARE_EMPTY_RESULT.test(message.text));

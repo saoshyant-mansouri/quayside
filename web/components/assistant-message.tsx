@@ -2,10 +2,11 @@
 
 import { Clock, ShieldCheck } from "lucide-react";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTechnicalDetails } from "@/hooks/use-technical-details";
 import type { AssistantMessage as AssistantMessageData } from "@/lib/chat-state";
 import { citedNumbers } from "@/lib/citation-markers";
 import { formatLatency, plural } from "@/lib/format";
-import { OPERATIONAL_TOOLS, isRefusal } from "@/lib/refusal";
+import { OPERATIONAL_TOOLS, isBareEmptyResult, isRefusal } from "@/lib/refusal";
 import { AnswerMarkdown } from "./answer-markdown";
 import { Citations } from "./citations";
 import { SqlDisclosure } from "./sql-disclosure";
@@ -17,15 +18,6 @@ const COMPOSER_CLEARANCE_PX = 140;
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-function AnswerSkeleton() {
-  return (
-    <div aria-hidden="true" className="space-y-3 pt-1">
-      <div className="h-4 w-11/12 rounded bg-foreground/10 motion-safe:animate-pulse" />
-      <div className="h-4 w-9/12 rounded bg-foreground/10 motion-safe:animate-pulse" />
-    </div>
-  );
 }
 
 function PhaseNote({ message }: { message: AssistantMessageData }) {
@@ -59,56 +51,67 @@ function RefusalNote() {
       <ShieldCheck aria-hidden="true" size={20} className="mt-0.5 shrink-0" />
       <p>
         <strong className="font-semibold">No source found. Answered without guessing.</strong>{" "}
-        The retrieved sources do not contain this, and inventing it would be worse than saying so.
-        A refusal here is the grounding rule working as designed.
+        MSC&rsquo;s public sources do not contain this, and making it up would be worse than saying
+        so.
       </p>
     </section>
   );
 }
 
-function MessageFooter({ message }: { message: AssistantMessageData }) {
+function MessageFooter({
+  message,
+  technical,
+}: {
+  message: AssistantMessageData;
+  technical: boolean;
+}) {
   const { done, tools, sql, citations } = message;
   if (!done) return null;
   const uncited = done.grounding?.uncited ?? 0;
   const cited = done.grounding?.cited ?? 0;
   const refused = isRefusal(message);
-  const usedOperationalData = Boolean(sql) || tools.some((tool) => OPERATIONAL_TOOLS.has(tool.name));
+  const usedOperationalData =
+    Boolean(sql) || tools.some((tool) => OPERATIONAL_TOOLS.has(tool.name));
+
+  if (!technical && uncited === 0 && !usedOperationalData) return null;
 
   return (
     <footer className="space-y-2.5 border-t border-border pt-3">
-      <ul className="flex flex-wrap items-center gap-2 text-xs">
-        <li className="flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-normal-text">
-          <Clock aria-hidden="true" size={12} />
-          <span>
-            Answered in{" "}
-            <span className="font-mono font-semibold tabular-nums text-foreground">
-              {formatLatency(done.latencyMs)}
+      {technical ? (
+        <ul className="flex flex-wrap items-center gap-2 text-xs">
+          <li className="flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-normal-text">
+            <Clock aria-hidden="true" size={12} />
+            <span>
+              Answered in{" "}
+              <span className="font-mono font-semibold tabular-nums text-foreground">
+                {formatLatency(done.latencyMs)}
+              </span>
             </span>
-          </span>
-        </li>
-        {done.cached ? (
-          <li
-            title="Served from the semantic answer cache"
-            className="tone-olive rounded-full px-2.5 py-1 font-semibold"
-          >
-            Cached
           </li>
-        ) : null}
-        {uncited > 0 ? (
-          <li className="tone-blush rounded-full px-2.5 py-1 font-semibold">
-            {plural(uncited, "uncited statement")}
-          </li>
-        ) : cited > 0 && !refused ? (
-          <li className="tone-sage rounded-full px-2.5 py-1 font-medium">
-            Every statement cited ({cited})
-          </li>
-        ) : null}
-        {citations.length === 0 ? (
-          <li className="rounded-full border border-border px-2.5 py-1 text-normal-text">
-            No sources retrieved
-          </li>
-        ) : null}
-      </ul>
+          {done.cached ? (
+            <li
+              title="Served from the semantic answer cache"
+              className="tone-olive rounded-full px-2.5 py-1 font-semibold"
+            >
+              Cached
+            </li>
+          ) : null}
+          {uncited > 0 ? (
+            <li className="tone-blush rounded-full px-2.5 py-1 font-semibold">
+              {plural(uncited, "uncited statement")}
+            </li>
+          ) : cited > 0 && !refused ? (
+            <li className="tone-sage rounded-full px-2.5 py-1 font-medium">
+              Every statement cited ({cited})
+            </li>
+          ) : null}
+          {citations.length === 0 ? (
+            <li className="rounded-full border border-border px-2.5 py-1 text-normal-text">
+              No sources retrieved
+            </li>
+          ) : null}
+        </ul>
+      ) : null}
       {uncited > 0 ? (
         <p className="text-[13px] leading-snug text-foreground">
           {uncited === 1
@@ -131,6 +134,7 @@ type AssistantMessageProps = { message: AssistantMessageData };
 function AssistantMessageView({ message }: AssistantMessageProps) {
   const [activeNumber, setActiveNumber] = useState<number | null>(null);
   const cardsRef = useRef(new Map<number, HTMLAnchorElement>());
+  const { enabled: technical } = useTechnicalDetails();
   const streaming = message.phase === "streaming";
   const hasCitations = message.citations.length > 0;
   const citedInAnswer = useMemo(() => citedNumbers(message.text), [message.text]);
@@ -167,13 +171,10 @@ function AssistantMessageView({ message }: AssistantMessageProps) {
       <ToolStatus tools={message.tools} waiting={streaming && message.text === ""} />
 
       <div
-        className={
-          hasCitations ? "grid gap-x-10 gap-y-6 md:grid-cols-[minmax(0,1fr)_19rem]" : ""
-        }
+        className={hasCitations ? "grid gap-x-10 gap-y-6 md:grid-cols-[minmax(0,1fr)_19rem]" : ""}
       >
         <div className="min-w-0 space-y-5 md:col-start-1 md:row-start-1">
-          {message.text === "" && streaming ? <AnswerSkeleton /> : null}
-          {message.text !== "" ? (
+          {message.text !== "" && !isBareEmptyResult(message) ? (
             <AnswerMarkdown
               text={message.text}
               citations={message.citations}
@@ -182,10 +183,10 @@ function AssistantMessageView({ message }: AssistantMessageProps) {
               onSelectCitation={selectCitation}
             />
           ) : null}
-          {message.sql ? <SqlDisclosure result={message.sql} /> : null}
+          {message.sql ? <SqlDisclosure result={message.sql} technical={technical} /> : null}
           {isRefusal(message) ? <RefusalNote /> : null}
           <PhaseNote message={message} />
-          <MessageFooter message={message} />
+          <MessageFooter message={message} technical={technical} />
         </div>
 
         {hasCitations ? (
@@ -194,7 +195,7 @@ function AssistantMessageView({ message }: AssistantMessageProps) {
               citations={message.citations}
               citedInAnswer={citedInAnswer}
               activeNumber={activeNumber}
-              settled={message.phase !== "streaming"}
+              settled={technical && message.phase !== "streaming"}
               registerCard={registerCard}
             />
           </div>

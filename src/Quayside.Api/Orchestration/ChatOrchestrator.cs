@@ -49,6 +49,13 @@ public sealed class ChatOrchestrator(
     private async Task AnswerAsync(string question, string? requestedConversationId, IEventSink sink, long started, CancellationToken ct)
     {
         var conversation = conversations.Open(requestedConversationId);
+
+        if (CapabilityQuestion.Matches(question))
+        {
+            await AnswerCapabilityAsync(question, conversation.Id, sink, started, ct);
+            return;
+        }
+
         var embedding = (await embeddings.GenerateAsync([question], cancellationToken: ct))[0].Vector;
 
         if (conversation.Turns.Count == 0 && await TryServeFromCacheAsync(question, embedding, conversation, sink, started, ct))
@@ -210,6 +217,21 @@ public sealed class ChatOrchestrator(
         catch (Exception)
         {
         }
+    }
+
+    private async Task AnswerCapabilityAsync(string question, string conversationId, IEventSink sink, long started, CancellationToken ct)
+    {
+        var turn = new TurnContext(sink, question, ReadOnlyMemory<float>.Empty);
+        turn.Gate.Open();
+        foreach (var piece in CapabilityQuestion.Reply)
+        {
+            await turn.Gate.WriteAsync(piece, ct);
+        }
+
+        conversations.Append(conversationId, new ChatTurn(question, turn.Gate.Emitted));
+        await sink.EmitAsync(
+            new DoneEvent(conversationId, ElapsedMs(started), false, new UsagePayload(0, 0), new GroundingPayload(0, 0)),
+            ct);
     }
 
     private static long ElapsedMs(long started) => (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;

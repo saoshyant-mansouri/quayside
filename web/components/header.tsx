@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AUTHOR_URL, REPOSITORY_URL, SITE_NAME } from "@/lib/site";
-import { HealthStatus } from "./health-status";
 import { ThemeToggle } from "./theme-toggle";
 
 const linkClass =
@@ -17,7 +16,6 @@ export function Header() {
           {SITE_NAME}
         </Link>
         <div className="flex items-center gap-4 md:gap-6">
-          <HealthStatus />
           <ul className="hidden items-center gap-6 md:flex">
             <li>
               <a href={REPOSITORY_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>

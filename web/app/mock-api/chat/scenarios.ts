@@ -113,9 +113,23 @@ export const rejectedSqlScenario: Scenario = {
   grounding: { cited: 0, uncited: 0 },
 };
 
+export const emptySqlScenario: Scenario = {
+  tools: ["query_database"],
+  citations: [],
+  sql: {
+    sql: "SELECT TOP (5) VesselName FROM dbo.Vessel WHERE VesselName = 'Atlantis'",
+    columns: ["VesselName"],
+    rows: [],
+    rejected: null,
+  },
+  answer: "The query returned 0 rows.",
+  grounding: { cited: 0, uncited: 0 },
+};
+
 export function pickScenario(message: string): Scenario {
   const text = message.toLowerCase();
   if (/\b(delete|drop|update|remove)\b/.test(text)) return rejectedSqlScenario;
+  if (text.includes("atlantis")) return emptySqlScenario;
   if (text.includes("port")) return portsScenario;
   if (text.includes("track") || text.includes("mscu")) return trackScenario;
   if (text.includes("profit")) return refusalScenario;

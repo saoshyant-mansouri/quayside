@@ -26,7 +26,7 @@ export async function* streamChat({
   });
 
   if (!response.ok || !response.body) {
-    throw new ApiError(`The API answered with status ${response.status}.`);
+    throw new ApiError("The service did not respond properly. Please try again in a moment.");
   }
 
   for await (const { event, data } of parseSse(response.body)) {

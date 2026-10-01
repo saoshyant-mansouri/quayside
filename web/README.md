@@ -46,6 +46,7 @@ lives in `app/mock-api/` and emits the same SSE contract as the real API
 | question contains | scenario |
 |---|---|
 | `delete`, `drop`, `update`, `remove` | `sql` event with `rejected` set |
+| `atlantis` | `query_database` with a zero-row result |
 | `port` | tool calls, citations, SQL with a result grid |
 | `track`, `mscu` | operational tool with `uncited: 2` grounding |
 | `profit` | refusal with no citations |
@@ -128,24 +129,57 @@ The visual language is copied from the author's personal site
   `components/theme-toggle.tsx` flip the class and persist the choice. It is the
   only inline script; model output never reaches `dangerouslySetInnerHTML`.
 - `olive` is the single accent. It is used as a fill with `ink` text (the Ask
-  button, inline `[n]` markers, the active source, the "cached" chip, the health
-  dot) and never as text on the page background, where its contrast is too low.
+  button, inline `[n]` markers, the active source, the "cached" chip, the Technical details switch) and never as text on the page background, where its contrast is too low.
   `blush` carries the persistent disclaimer and warnings; `sage` carries the
   refusal and rejected-SQL states. Focus rings use `--foreground` for contrast.
 - No animation library. The only motion is CSS transitions, all collapsed by the
   `prefers-reduced-motion` rule at the bottom of `globals.css`.
 
+## Technical details
+
+The interface is written for someone who has never heard of RAG. Everything a
+developer would want to inspect is behind one quiet switch in the footer,
+**Technical details**, off by default and remembered in
+`localStorage["technical-details"]` (`hooks/use-technical-details.ts`, a
+`useSyncExternalStore` over that key, so every message and the footer react
+together and other tabs follow).
+
+| | off (default) | on |
+|---|---|---|
+| generated SQL, result grid, row count | hidden | shown in the disclosure |
+| per-answer latency, cached, grounding and "no sources" chips | hidden | shown |
+| "Cited in the answer" / "Retrieved, not cited" on source cards | hidden | shown |
+| corpus size and capture date | not fetched | footer, from `GET /api/health` |
+
+These stay on regardless, because they are meaning rather than diagnostics: the
+sources panel and inline `[n]` markers, the synthetic-data note on operational
+answers, the independent-demonstration banner, the refusal explainer, the
+safety-check card when a query is rejected, and the plain "this could not be tied
+to a source" caution when the grounding check finds uncited sentences.
+
+The header no longer shows corpus counts. `/api/health` is only requested when the
+switch is on.
+
+A database answer with zero rows shows "The demo database has no matching
+records for that." and never an empty grid. If the model's own text is just a
+short "0 rows" sentence (`isBareEmptyResult` in `lib/refusal.ts`), it is
+replaced by that line rather than repeated beside it.
+
+The loading state is one line, shown the moment the question is sent: "Working..."
+until the first tool event, then the tool's plain-language status. It reserves no
+height.
+
 ## Refusals
 
-The example question "What was MSC's net profit in 2024?" is meant to be
-refused: the figure is not in the sources. The empty state labels each example
-with what it demonstrates and explains that one should refuse. `lib/refusal.ts`
-recognises a finished answer that opens with "I could not find ...", used no SQL
-or operational tool and has no uncited statements. Those answers get a
-"No source found. Answered without guessing." note instead of a bare negative
-sentence. The detection is a phrase match on the opening words, because the API
-may still list retrieved sources and report a cited statement on a refusal, so
-`grounding.cited == 0` is not a reliable signal.
+Example questions come entirely from `GET /api/examples`: the label and the
+question are rendered as given, with no special case for any label. Refusals
+still happen naturally. `lib/refusal.ts` recognises a finished answer that opens
+with "I could not find ...", used no SQL or operational tool and has no uncited
+statements. Those answers get a "No source found. Answered without guessing."
+note instead of a bare negative sentence. The detection is a phrase match on
+the opening words, because the API may still list retrieved sources and report a
+cited statement on a refusal, so `grounding.cited == 0` is not a reliable
+signal.
 
 ## SEO
 
