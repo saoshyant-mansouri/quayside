@@ -270,3 +270,33 @@ vCore-second actually consumed, and `minCapacity` stays at 0.5, so an idle
 database is unchanged. A higher ceiling only lets bursty work — corpus
 ingestion, the first `query_database` after a resume — finish sooner, which
 tends to consume *fewer* vCore-seconds for the same work.
+
+## Isolation from the other project on this subscription
+
+The subscription also hosts `calcio`. Everything that holds data or identity is
+separate; one piece of shared infrastructure is unavoidable.
+
+| Resource | Quayside | Shared with calcio |
+|---|---|---|
+| Resource group | `rg-quayside-dev` | no |
+| Terraform state | `rg-quayside-bootstrap`, own storage account, own state key | no |
+| Azure SQL server and database | own server, own database | no |
+| Azure OpenAI account | own account, `local_auth_enabled = false` | no |
+| Application Insights | own component | no |
+| Log Analytics workspace | own workspace, capped at 0.2 GB/day | no |
+| Storage account | own account | no |
+| Managed identity | own user-assigned identity, scoped to Quayside's resources only | no |
+| **Container Apps Environment** | `cae-calcio-dev` | **yes — unavoidable** |
+
+The environment is shared because Azure for Students permits exactly one per
+subscription (`ManagedEnvironmentCount  currentValue=1  limit=1`) and calcio
+already holds it. Creating a second one fails; the alternatives were a separate
+App Service plan at about $13/month, or relocating a live site.
+
+What sharing actually leaks is narrow: the environment's log destination is
+fixed at the environment level, so raw container stdout goes to calcio's Log
+Analytics workspace and shares its free grant. It is not a data path. No
+Quayside database, model endpoint, credential, secret or identity is reachable
+from calcio, and Application Insights is SDK-based rather than
+environment-based, so every trace, latency figure and token count Quayside
+records still lands in its own workspace.
