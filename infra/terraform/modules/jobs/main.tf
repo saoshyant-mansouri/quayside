@@ -11,15 +11,23 @@ resource "azurerm_container_app_job" "ingest" {
     identity_ids = [var.identity_id]
   }
 
-  registry {
-    server               = "ghcr.io"
-    username             = var.ghcr_owner
-    password_secret_name = "ghcr-pat"
+  dynamic "registry" {
+    for_each = toset(var.ghcr_pat == "" ? [] : ["ghcr"])
+
+    content {
+      server               = "ghcr.io"
+      username             = var.ghcr_owner
+      password_secret_name = "ghcr-pat"
+    }
   }
 
-  secret {
-    name  = "ghcr-pat"
-    value = var.ghcr_pat
+  dynamic "secret" {
+    for_each = toset(var.ghcr_pat == "" ? [] : ["ghcr"])
+
+    content {
+      name  = "ghcr-pat"
+      value = var.ghcr_pat
+    }
   }
 
   secret {

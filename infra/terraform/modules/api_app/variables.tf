@@ -25,6 +25,7 @@ variable "ghcr_owner" {
 variable "ghcr_pat" {
   type      = string
   sensitive = true
+  default   = ""
 }
 
 variable "openai_account_id" {

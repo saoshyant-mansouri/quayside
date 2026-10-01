@@ -29,6 +29,7 @@ variable "ghcr_pat" {
   type        = string
   sensitive   = true
   description = "GitHub PAT with read:packages for ghcr.io authentication"
+  default     = ""
 }
 
 variable "existing_container_app_environment_id" {
