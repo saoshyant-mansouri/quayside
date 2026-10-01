@@ -26,7 +26,7 @@ RUN dotnet publish src/Quayside.Api/Quayside.Api.csproj \
 
 FROM busybox:1.37.0-musl AS shell
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS runtime
 WORKDIR /app
 
 COPY --from=shell /bin/busybox /usr/local/bin/busybox

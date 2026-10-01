@@ -167,3 +167,15 @@ If it is ever connected, it expects:
 Known differences from GitHub Actions: Azure Pipelines cannot filter a single
 stage by path, so Deploy runs on every push to `main` that passes CI, and there
 is no cost-guard equivalent.
+
+## Runtime base image: why `-extra`
+
+The runtime stage uses `mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra`
+rather than plain `-chiseled`. The plain chiselled image ships without ICU, so
+.NET starts in globalization-invariant mode and `Microsoft.Data.SqlClient`
+throws `System.NotSupportedException: Globalization Invariant Mode is not
+supported` on the first connection attempt. The ingest job failed this way on
+its first real run against Azure SQL.
+
+`-extra` adds ICU and tzdata and keeps the rest of the chiselled surface: still
+no shell of its own, still non-root.
