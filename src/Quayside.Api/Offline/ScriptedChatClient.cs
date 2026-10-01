@@ -128,7 +128,16 @@ public sealed partial class ScriptedChatClient : IChatClient
             return SqlPrompt.Unanswerable;
         }
 
-        return "SELECT TOP (5) p.PortName, COUNT(*) AS Containers FROM ops.ContainerMovements m JOIN ops.Ports p ON p.PortId = m.PortId GROUP BY p.PortName ORDER BY COUNT(*) DESC";
+        var table = TablePattern().Match(prompt);
+        if (!table.Success)
+        {
+            return SqlPrompt.Unanswerable;
+        }
+
+        var columns = ColumnPattern().Matches(table.Groups["body"].Value)
+            .Select(match => $"t.{match.Groups["name"].Value}")
+            .Take(4);
+        return $"SELECT TOP (5) {string.Join(", ", columns)} FROM ops.{table.Groups["name"].Value} t";
     }
 
     private static IEnumerable<string> Pieces(string text) => WordPattern().Matches(text).Select(match => match.Value);
@@ -146,4 +155,10 @@ public sealed partial class ScriptedChatClient : IChatClient
 
     [GeneratedRegex(@"\s*\S+\s?")]
     private static partial Regex WordPattern();
+
+    [GeneratedRegex(@"CREATE TABLE ops\.(?<name>\w+) \(\n(?<body>.*?)\n\);", RegexOptions.Singleline)]
+    private static partial Regex TablePattern();
+
+    [GeneratedRegex(@"^\s+(?<name>\w+) \w+", RegexOptions.Multiline)]
+    private static partial Regex ColumnPattern();
 }

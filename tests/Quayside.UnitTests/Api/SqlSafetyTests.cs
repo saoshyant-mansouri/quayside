@@ -81,6 +81,37 @@ public sealed class SqlSafetyTests
     }
 
     [Fact]
+    public async Task The_offline_scripted_model_writes_a_statement_that_is_accepted_and_returns_rows()
+    {
+        using var host = new ApiHost();
+
+        var result = await host.AskWarmAsync(Questions.Ranking);
+
+        var sql = result.Single("sql");
+        Assert.Equal(JsonValueKind.Null, sql["rejected"].ValueKind);
+        Assert.NotEmpty(sql["columns"].EnumerateArray());
+        var rows = sql["rows"].EnumerateArray().ToArray();
+        Assert.NotEmpty(rows);
+        Assert.All(rows, row => Assert.Equal(sql["columns"].GetArrayLength(), row.GetArrayLength()));
+        Assert.Equal([sql["sql"].GetString()!], host.Sql.Statements);
+        var completed = result.ToolEvents("query_database", "completed").Single();
+        Assert.False(completed["detail"].TryGetProperty("rejected", out _));
+        Assert.True(completed["detail"].GetProperty("synthetic").GetBoolean());
+    }
+
+    [Fact]
+    public async Task The_offline_scripted_statement_reads_only_tables_offered_in_the_prompt()
+    {
+        using var host = new ApiHost();
+
+        var result = await host.AskWarmAsync(Questions.Ranking);
+
+        var tables = result.ToolEvents("query_database", "completed").Single()["detail"].GetProperty("tables").EnumerateArray().Select(t => t.GetString()!).ToArray();
+        var statement = result.Single("sql")["sql"].GetString()!;
+        Assert.Contains(tables, table => statement.Contains($"ops.{table} ", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task The_sql_event_precedes_the_tool_completion_and_the_answer()
     {
         using var host = new ApiHost();

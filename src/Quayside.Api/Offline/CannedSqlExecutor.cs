@@ -1,9 +1,10 @@
+using System.Text.RegularExpressions;
 using Quayside.Core;
 using Quayside.Core.Sql;
 
 namespace Quayside.Api.Offline;
 
-public sealed class CannedSqlExecutor : IReadOnlySqlExecutor
+public sealed partial class CannedSqlExecutor : IReadOnlySqlExecutor
 {
     public Task<SqlResultSet> ExecuteAsync(string sql, CancellationToken ct) => Task.FromResult(Answer(sql));
 
@@ -41,11 +42,24 @@ public sealed class CannedSqlExecutor : IReadOnlySqlExecutor
             return Result(["PortName", "UnLocode", "CountryName", "IsHubPort"], [["Rotterdam", "NLRTM", "Netherlands", true]]);
         }
 
-        return Result(
-            ["PortName", "Containers"],
-            [["Rotterdam", 1840], ["Antwerp", 1522], ["Hamburg", 1210], ["Valencia", 987], ["Genoa", 864]]);
+        return Derived(sql);
+    }
+
+    private static SqlResultSet Derived(string sql)
+    {
+        var list = SelectList().Match(sql);
+        var columns = list.Success
+            ? list.Groups["list"].Value.Split(',').Select(column => column.Trim().Split('.', ' ').Last()).ToArray()
+            : ["Result"];
+        var rows = Enumerable.Range(1, 3)
+            .Select(row => columns.Select(column => (object?)$"{column} {row}").ToArray())
+            .ToArray();
+        return Result(columns, rows);
     }
 
     private static SqlResultSet Result(string[] columns, object?[][] rows) =>
         new(columns, rows.Select(row => (IReadOnlyList<object?>)row).ToArray(), 1.0);
+
+    [GeneratedRegex(@"^\s*SELECT\s+TOP\s*\(\d+\)\s+(?<list>.+?)\s+FROM\b", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex SelectList();
 }

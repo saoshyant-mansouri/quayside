@@ -28,7 +28,7 @@ public sealed class ApiSettings
     public bool HoldHydration { get; init; }
 }
 
-public sealed class ApiHost(ApiSettings? settings = null) : WebApplicationFactory<ChatOrchestrator>
+public sealed class ApiHost(ApiSettings? settings = null) : WebApplicationFactory<Program>
 {
     public const string Secret = "Server=tcp:quayside-sentinel.database.windows.net;Password=sentinel-hunter2";
 
