@@ -11,7 +11,10 @@ public sealed class CapabilityQuestionTests
     [InlineData("Who built you?")]
     [InlineData("how do you work")]
     [InlineData("hi, what can you answer?")]
-    [InlineData("help")]
+    [InlineData("hi")]
+    [InlineData("hello!")]
+    [InlineData("what can you do and tell me about msc")]
+    [InlineData("can you help")]
     public void Questions_about_the_assistant_are_recognised(string question) =>
         Assert.True(CapabilityQuestion.Matches(question));
 

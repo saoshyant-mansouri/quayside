@@ -148,9 +148,13 @@ public static partial class Program
                     var text = post.GetProperty("text").GetString() ?? string.Empty;
                     var age = post.TryGetProperty("age", out var ageProp) ? ageProp.GetString() : null;
                     var firstLine = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "LinkedIn post";
-                    var title = firstLine.Length <= 90 ? firstLine : firstLine[..90] + "...";
+                    var headline = firstLine.Length <= 90 ? firstLine : firstLine[..90] + "...";
+                    var published = PublishedDate(age, capturedAt);
+                    var title = published is null
+                        ? $"LinkedIn post: {headline}"
+                        : $"LinkedIn post, {published}: {headline}";
                     var id = $"li-{urn}";
-                    documents.Add(new Document(id, SourceKind.LinkedIn, url, title, text, PublishedDate(age, capturedAt), capturedAt, Hash(text)));
+                    documents.Add(new Document(id, SourceKind.LinkedIn, url, title, text, published, capturedAt, Hash(text)));
                 }
             }
         }

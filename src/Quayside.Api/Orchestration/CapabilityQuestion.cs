@@ -19,19 +19,29 @@ public static partial class CapabilityQuestion
     public static bool Matches(string question)
     {
         var text = question.Trim();
-        if (text.Length > 80 || Subject().IsMatch(text))
+        if (text.Length == 0)
         {
             return false;
         }
 
-        return Pattern().IsMatch(text);
+        if (Greeting().IsMatch(text))
+        {
+            return true;
+        }
+
+        return text.Length <= 110 && Capability().IsMatch(text) && !SpecificSubject().IsMatch(text);
     }
 
-    [GeneratedRegex(@"\b(?:msc|container|vessel|port|schedule|cargo|shipping|reefer|profit|fleet|office)\w*\b|\babout\s+\w", RegexOptions.IgnoreCase)]
-    private static partial Regex Subject();
+    [GeneratedRegex(@"^(?:hi|hey|hello|yo|hiya|good\s+(?:morning|afternoon|evening)|greetings)[\s,!.?]*$", RegexOptions.IgnoreCase)]
+    private static partial Regex Greeting();
 
     [GeneratedRegex(
-        @"^(?:hi|hello|hey)?[\s,!.]*(?:(?:so\s+)?what(?:'?s| is| are| can| do)?\s+(?:you|u|this|it|yours)?\s*(?:can|could|able to)?\s*(?:really\s+)?(?:do|answer|answers|help|know|offer|tell)|what\s+(?:can|do)\s+you|what\s+(?:are|is)\s+(?:you|this)|who\s+(?:are|built|made)\s+you|how\s+do\s+you\s+work|what\s+data\s+do\s+you|capabilities|help)\b",
+        @"\b(?:what\s+(?:can|do|are)\s+(?:you|u)|what(?:'?s| is)\s+this|who\s+(?:are|built|made)\s+you|how\s+do\s+you\s+work|what\s+data\s+do\s+you|your\s+capabilities|can\s+you\s+help|what\s+do\s+you\s+know)\b",
         RegexOptions.IgnoreCase)]
-    private static partial Regex Pattern();
+    private static partial Regex Capability();
+
+    [GeneratedRegex(
+        @"\d|\b(?:profit|revenue|turnover|earnings|fleet|office|offices|port|ports|vessel|vessels|container|containers|schedule|schedules|reefer|cargo|founded|ceo|employees|headquarters|fuel|fuels|emission|emissions)\b",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex SpecificSubject();
 }
