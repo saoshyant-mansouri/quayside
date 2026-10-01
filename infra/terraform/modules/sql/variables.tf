@@ -40,3 +40,14 @@ variable "owner_ip_address" {
   type    = string
   default = ""
 }
+
+variable "max_vcores" {
+  type        = number
+  default     = 4
+  description = "Serverless maximum vCores. 4 is the ceiling that still supports the AutoPause free-limit behaviour; 6 and above only offer BillOverUsage."
+
+  validation {
+    condition     = contains([1, 2, 4], var.max_vcores)
+    error_message = "Only 1, 2 or 4 vCores support freeLimitExhaustionBehavior = AutoPause. Higher SKUs bill once the free grant is exhausted."
+  }
+}

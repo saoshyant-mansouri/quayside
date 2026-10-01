@@ -245,3 +245,28 @@ terraform init -backend=false && terraform validate
 ```
 
 Run in both `infra/bootstrap` and `infra/terraform`.
+
+## Database sizing, and the ceiling that keeps it free
+
+The database runs at the **maximum capacity that still cannot bill**:
+`GP_S_Gen5` with `max_vcores = 4`, 32 GB (the free offer's cap), `minCapacity`
+0.5 and `autoPauseDelay` 60 minutes.
+
+Four vCores is a hard ceiling, not a preference. Querying the location
+capabilities for every serverless SKU that supports a free limit:
+
+```
+GP_S_Gen5_1 / _2 / _4    AutoPause, BillOverUsage
+GP_S_Gen5_6 and above    BillOverUsage only
+```
+
+From six vCores upward Azure stops offering `AutoPause`, so exhausting the
+100,000 free vCore-seconds would start charging rather than stopping. A
+`validation` block on `max_vcores` rejects anything outside 1, 2 and 4 so that
+ceiling cannot be raised by accident.
+
+Raising the maximum from 2 to 4 costs nothing at rest. Serverless bills per
+vCore-second actually consumed, and `minCapacity` stays at 0.5, so an idle
+database is unchanged. A higher ceiling only lets bursty work — corpus
+ingestion, the first `query_database` after a resume — finish sooner, which
+tends to consume *fewer* vCore-seconds for the same work.

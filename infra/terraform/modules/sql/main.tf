@@ -25,7 +25,7 @@ resource "azapi_resource" "database" {
       name     = "GP_S_Gen5"
       tier     = "GeneralPurpose"
       family   = "Gen5"
-      capacity = 2
+      capacity = var.max_vcores
     }
     properties = {
       minCapacity                      = 0.5
