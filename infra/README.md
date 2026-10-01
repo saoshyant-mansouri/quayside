@@ -82,6 +82,33 @@ with placeholders. `envs/*.tfvars` is gitignored. Sensitive values
 `sql_admin_login` is also a sensitive variable and may be supplied the same
 way.
 
+## The one hard subscription limit
+
+`Azure for Students` allows exactly **one Container Apps Environment per
+subscription**, and calcio's `cae-calcio-dev` already occupies it. This is not
+folklore from a code comment; it is the quota API:
+
+```
+GET /subscriptions/{sub}/providers/Microsoft.App/locations/francecentral/usages
+  ManagedEnvironmentCount   currentValue = 1   limit = 1
+```
+
+So `existing_container_app_environment_id` is set in `envs/dev.tfvars` and the
+`container_env` module is skipped. Quayside's container app and job still live
+in `rg-quayside-dev`; only the environment is shared.
+
+The cost of sharing: the environment's log destination is fixed at the
+environment level, so raw container stdout lands in calcio's Log Analytics
+workspace and shares its 5 GB monthly free grant. Application Insights is
+SDK-based rather than environment-based, so Quayside's OpenTelemetry traces,
+latency and token metrics are unaffected and still go to its own capped
+workspace.
+
+By contrast, **Azure OpenAI is not contested.** The subscription allows one
+OpenAI account per region and calcio uses DeepSeek, so no Cognitive Services
+account exists at all (`az cognitiveservices account list` is empty). Quayside
+takes the slot uncontested.
+
 ## Cost-critical constraints
 
 Do not change any of these without re-reading the arithmetic in the

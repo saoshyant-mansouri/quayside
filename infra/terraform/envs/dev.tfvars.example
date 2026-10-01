@@ -14,4 +14,19 @@ monthly_budget_amount = 20
 
 cors_origins = ["https://your-project.vercel.app"]
 
-existing_container_app_environment_id = null
+# Azure for Students allows exactly ONE Container Apps Environment per
+# subscription, and calcio already holds it. Verified against the quota API:
+#   Microsoft.App/locations/francecentral/usages
+#   -> ManagedEnvironmentCount  currentValue=1  limit=1
+# So Quayside reuses it. The container app still lives in rg-quayside-dev;
+# only the environment is shared. Consequence: raw container stdout goes to
+# calcio's Log Analytics workspace, not Quayside's capped one. Application
+# Insights is SDK-based and unaffected, so Quayside's own traces, latency and
+# token metrics still land in its own workspace.
+#
+#   az containerapp env show --name cae-calcio-dev \
+#     --resource-group rg-calcio-dev --query id -o tsv
+#
+# Set to null to have Terraform create a dedicated environment instead, which
+# will fail on this subscription until calcio's is removed.
+existing_container_app_environment_id = "/subscriptions/73f780d8-3e73-4613-a60e-d3bf66c3d5db/resourceGroups/rg-calcio-dev/providers/Microsoft.App/managedEnvironments/cae-calcio-dev"
