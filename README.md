@@ -20,7 +20,7 @@ Three requirements from the AI Engineer ad drove the design, and they are
 the three things worth reading the code for:
 
 **1. "RAG applied to large-scale document collections."**
-A real captured corpus — 115 MSC LinkedIn posts and 75 msc.com pages — with
+A real captured corpus — 115 MSC LinkedIn posts and 231 msc.com pages — with
 hybrid retrieval (SIMD cosine + BM25, fused with reciprocal rank fusion),
 citations on every claim, and a refusal path when nothing grounds the
 answer. The grounding contract is enforced in code, not merely prompted: a
@@ -47,6 +47,32 @@ vs `ContainerEvents` vs `EquipmentMovements`, `Tariffs` vs `TariffRates` vs
 Semantic Kernel auto function calling over typed tools: `search_knowledge`,
 `query_database`, `track_container`, `find_schedules`, `get_vessel`,
 `get_port`.
+
+## The data layer, and the honest size of it
+
+There is **one store: Azure SQL Database**, and no separate vector database.
+It holds the corpus (`Documents`, `Chunks`, `AnswerCache`, `SchemaCards`, each
+with `VECTOR(1536)` columns) and the synthetic `ops.` schema the NL→SQL demo
+queries. Two connection strings: the app uses a read-write login, and every
+generated statement runs on a separate `db_datareader` login with
+`ApplicationIntent=ReadOnly`.
+
+**Why no vector database.** The corpus is ~1,000 chunks, which is about 6 MB of
+float32. Measured in-memory hybrid search is 0.155 ms p50 at 440 chunks and
+1.045 ms p50 at 4,000. Any network-attached vector store adds a 10–50 ms
+round trip — one to two orders of magnitude slower than the thing it would
+replace. So memory is the query index and SQL is the system of record.
+`VECTOR_DISTANCE` is nonetheless implemented and tested in T-SQL: it backs the
+answer cache's nearest-question lookup, and a top-k path exists as the
+documented route for when the corpus outgrows memory.
+
+**Where this falls short of the ad.** The AI role asks for RAG over
+"large-scale document collections". ~1,000 chunks is not large-scale. It is
+what MSC's public English surface actually yields, and inflating it with
+synthetic filler would make the retrieval numbers meaningless. What is
+demonstrated instead is that the design scales: the index is benchmarked to
+4,000 chunks in memory, and the T-SQL vector path is built for beyond that.
+The 226-table NL→SQL problem is where this project takes on real scale.
 
 ## Speed
 
@@ -130,7 +156,7 @@ Honest state of the work:
 - [x] Terraform: bootstrap, foundation, OpenAI, SQL, container env, API app,
       ingest job, cost guard. `fmt` and `validate` pass. **Not yet applied.**
 - [x] 226-table schema spec + DDL / card / seed emitters, ScriptDom-verified
-- [x] Corpus captured: 115 LinkedIn posts, 75 msc.com pages
+- [x] Corpus captured: 115 LinkedIn posts, 231 msc.com pages (1.72M characters)
 - [x] Frontend, built and driven against a mock SSE stream
 - [ ] Core retrieval engine and grounding enforcement
 - [ ] NL→SQL pipeline and the ScriptDom guard
