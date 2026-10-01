@@ -1,6 +1,3 @@
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
+using Quayside.Api;
 
-app.MapGet("/", () => "Hello World!");
-
-app.Run();
+await QuaysideApplication.Build(args).RunAsync();

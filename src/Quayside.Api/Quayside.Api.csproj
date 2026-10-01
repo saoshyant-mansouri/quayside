@@ -5,6 +5,10 @@
     <ProjectReference Include="..\Quayside.Infrastructure\Quayside.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.80.1" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>

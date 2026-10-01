@@ -19,3 +19,6 @@ envs/*.tfvars
 .DS_Store
 TestResults/
 *.received.*
+.dotnet/
+.local/
+Library/

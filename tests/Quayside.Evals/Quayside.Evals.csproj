@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Quayside.Core\Quayside.Core.csproj" />
     <ProjectReference Include="..\..\src\Quayside.Infrastructure\Quayside.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Quayside.Api\Quayside.Api.csproj" />
   </ItemGroup>
 
 </Project>
