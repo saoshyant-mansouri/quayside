@@ -14,8 +14,8 @@ out/
 *.tfstate.*
 *.tfplan
 crash.log
-envs/*.tfvars
-!envs/*.tfvars.example
+**/envs/*.tfvars
+!**/envs/*.tfvars.example
 .DS_Store
 TestResults/
 *.received.*
