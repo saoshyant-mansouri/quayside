@@ -9,6 +9,17 @@ entirely on the Microsoft stack.
 > public sources and cites every one of them. All operational shipping data
 > in the demo schema is synthetic.
 
+## Live
+
+- **App:** https://quayside-three.vercel.app
+- **API:** https://ca-quayside-dev-api.wittyfield-2ba7056c.francecentral.azurecontainerapps.io/api/health
+
+Running on Azure in `francecentral`: `gpt-5-mini` and `text-embedding-3-small`
+behind a user-assigned managed identity, Azure SQL on the free serverless
+offer holding 877 chunks over 346 documents plus the 226-table `ops` schema,
+and the API on Container Apps. The frontend is on Vercel and reaches the API
+same-origin through a rewrite.
+
 ## Why it is built this way
 
 The project is calibrated against three real MSC job descriptions
@@ -84,15 +95,18 @@ index into one contiguous `float[]` and searches it with
 and tested as the documented scale-out route for when the corpus outgrows
 memory.
 
-| stage | p50 target |
-|---|---|
-| hybrid retrieval | < 5 ms |
-| cached answer, end to end | < 120 ms |
-| first streamed token | < 900 ms |
-| complete answer | < 3 s |
+| stage | target | measured |
+|---|---|---|
+| hybrid retrieval | < 5 ms | **0.155 ms** p50 at 440 chunks, 1.0 ms at 4000 |
+| cached answer, end to end | < 120 ms | not yet measured live |
+| first streamed token | < 900 ms | not yet measured live |
+| complete answer | < 3 s | **10-13 s** |
 
-These are targets. Measured numbers replace them here once the API is
-deployed — see **Status** below.
+Retrieval beat its target by more than an order of magnitude. The end-to-end
+figure did not: `gpt-5-mini` writes 1,000-1,200 completion tokens for a typical
+answer, and generation dominates everything else. Retrieval is not the
+bottleneck and never was. Shortening answers moves this number; the system
+prompt now asks for about 150 words, which helps but does not reach 3 s.
 
 ## Stack
 
@@ -166,12 +180,13 @@ Honest state of the work:
       allow-list is refused before execution
 - [x] Ingestion wiring, golden eval harness, CI, deployment and cost-guard
       workflows
-- [ ] API-level test coverage for the SSE contract and the grounding gate
-- [ ] `terraform apply` — nothing has been deployed to Azure yet
-- [ ] Measured end-to-end latency against real Azure OpenAI
+- [x] API-level tests for the SSE contract and the grounding gate
+- [x] Deployed to Azure and Vercel, verified end to end
+- [ ] Evals re-run against the live deployment
+- [ ] OIDC federated credential so the deploy workflow can update Azure itself
 
-305 unit tests pass today, plus one real-database integration test that is
-skipped by default.
+442 unit tests pass, plus one real-database integration test that is skipped
+by default.
 
 Nothing above claims to be working that is not. The checkboxes move as the
 code lands.
