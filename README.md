@@ -158,11 +158,21 @@ Honest state of the work:
 - [x] 226-table schema spec + DDL / card / seed emitters, ScriptDom-verified
 - [x] Corpus captured: 115 LinkedIn posts, 231 msc.com pages (1.72M characters)
 - [x] Frontend, built and driven against a mock SSE stream
-- [ ] Core retrieval engine and grounding enforcement
-- [ ] NL→SQL pipeline and the ScriptDom guard
-- [ ] Azure OpenAI + SQL infrastructure adapters, the SSE API
-- [ ] Ingestion wiring
-- [ ] Eval harness, CI, deployment
+- [x] Retrieval engine and the grounding contract, with measured latency
+- [x] NL→SQL pipeline and the ScriptDom guard
+- [x] Azure OpenAI and Azure SQL adapters, managed identity only, no API key
+- [x] The SSE API, verified end to end offline: index hydrates to **877 chunks
+      over 346 documents and 226 tables**, `citations` precedes the first
+      `token`, and a generated statement touching a table outside the retrieved
+      allow-list is refused before execution
+- [x] Ingestion wiring, golden eval harness, CI, deployment and cost-guard
+      workflows
+- [ ] API-level test coverage for the SSE contract and the grounding gate
+- [ ] `terraform apply` — nothing has been deployed to Azure yet
+- [ ] Measured end-to-end latency against real Azure OpenAI
+
+305 unit tests pass today, plus one real-database integration test that is
+skipped by default.
 
 Nothing above claims to be working that is not. The checkboxes move as the
 code lands.
