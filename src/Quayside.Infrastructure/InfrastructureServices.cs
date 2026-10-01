@@ -11,6 +11,7 @@ using Quayside.Infrastructure.Configuration;
 using Quayside.Infrastructure.Data;
 using Quayside.Infrastructure.Sql;
 using Quayside.Infrastructure.Telemetry;
+using Quayside.Infrastructure.Web;
 
 namespace Quayside.Infrastructure;
 
@@ -56,6 +57,7 @@ public static class InfrastructureServices
         services.AddSingleton<IReadOnlySqlExecutor>(provider =>
             new ReadOnlySqlExecutor(provider.GetRequiredService<IOptions<QuaysideOptions>>().Value.Sql.ReadOnly!));
 
+        services.AddQuaysideWebSearch(configuration);
         services.AddQuaysideTelemetry(configuration);
 
         return services;

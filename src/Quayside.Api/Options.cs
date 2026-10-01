@@ -11,7 +11,7 @@ public sealed class RetrievalOptions
 {
     public const string Section = "Quayside:Retrieval";
 
-    public int TopK { get; set; } = 6;
+    public int TopK { get; set; } = 8;
 }
 
 public sealed class SqlGenerationOptions
@@ -42,7 +42,7 @@ public sealed class ChatLimits
 
     public int WarmupWaitSeconds { get; set; } = 15;
 
-    public int MaxToolIterations { get; set; } = 6;
+    public int MaxToolIterations { get; set; } = 3;
 }
 
 public sealed class HydrationOptions

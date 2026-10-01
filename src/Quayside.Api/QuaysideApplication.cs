@@ -41,6 +41,7 @@ public static class QuaysideApplication
         configureServices?.Invoke(builder.Services);
 
         var app = builder.Build();
+        app.Logger.LogInformation("{WebFallbackStatus}", app.Services.GetRequiredService<WebFallback>().StatusLine);
         app.UseCors(CorsPolicy);
         ChatEndpoint.Map(app);
         HealthEndpoint.Map(app);
@@ -77,6 +78,8 @@ public static class QuaysideApplication
         services.AddHostedService<IndexHydrator>();
         services.AddSingleton<ConversationStore>();
         services.AddSingleton<ToolRunner>();
+        services.AddSingleton<WebFallback>();
+        services.AddSingleton<WebSearchTool>();
         services.AddSingleton<KnowledgeSearch>();
         services.AddSingleton<DatabaseQuery>();
         services.AddSingleton<OperationalLookups>();

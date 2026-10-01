@@ -10,4 +10,8 @@ public static class ConfigurationKeys
     public const string CorpusDirectory = "Corpus:Directory";
     public const string ApplicationInsightsConnection = "APPLICATIONINSIGHTS_CONNECTION_STRING";
     public const string ManagedIdentityClientId = "AZURE_CLIENT_ID";
+    public const string WebSearchProvider = "WebSearch:Provider";
+    public const string WebSearchApiKey = "WebSearch:ApiKey";
+    public const string WebSearchMaxResults = "WebSearch:MaxResults";
+    public const string WebSearchEnabled = "WebSearch:Enabled";
 }

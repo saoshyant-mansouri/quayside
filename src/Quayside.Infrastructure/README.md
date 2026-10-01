@@ -16,3 +16,14 @@ fired early and the attempts were spent without ever waiting long enough.
 
 Embedding the whole corpus takes a few minutes at this quota. That is the
 quota, not the code.
+
+## Web search
+
+`Web/` holds a provider-agnostic `WebSearchClient` over `IHttpClientFactory`
+(8 second per-attempt timeout, two retries with `BackoffRetryPolicy.Backoff`
+jitter, `Retry-After` honoured and capped at 3 seconds) with `TavilyProvider`
+(default, bearer auth, `https://api.tavily.com/search`) and `BraveProvider`
+(`X-Subscription-Token`). `AddQuaysideWebSearch` registers the client only when
+`WebSearch:ApiKey` is set, `WebSearch:Enabled` is not `false` and the provider is
+supported; otherwise it registers `NoWebSearch` carrying the reason. The key is
+never placed in a URL, body or error message.

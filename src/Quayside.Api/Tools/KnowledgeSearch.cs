@@ -13,16 +13,23 @@ public sealed class KnowledgeSearch(
     IEmbeddingGenerator<string, Embedding<float>> embeddings,
     IOptions<GroundingOptions> grounding,
     IOptions<RetrievalOptions> retrieval,
-    IOptions<ChatLimits> limits)
+    IOptions<ChatLimits> limits,
+    WebFallback web)
 {
     public async Task<ToolOutcome> SearchAsync(TurnContext turn, string query, CancellationToken ct)
     {
+        if (turn.WebFallbackUsed)
+        {
+            return new ToolOutcome(Prompts.CorpusClosed, new Dictionary<string, object?> { ["closed"] = true });
+        }
+
         var ready = await corpus.WaitAsync(TimeSpan.FromSeconds(limits.Value.WarmupWaitSeconds), ct);
         if (ready is null)
         {
             return new ToolOutcome(Prompts.IndexWarming, new Dictionary<string, object?> { ["warm"] = false });
         }
 
+        turn.CorpusSearched = true;
         var text = string.IsNullOrWhiteSpace(query) ? turn.Question : query;
         var embedding = string.Equals(text, turn.Question, StringComparison.Ordinal)
             ? turn.QuestionEmbedding
@@ -35,19 +42,14 @@ public sealed class KnowledgeSearch(
         if (result.Hits.Count == 0 || result.TopCosine < grounding.Value.MinTopCosine)
         {
             detail["refused"] = true;
-            return new ToolOutcome(Prompts.NoSources, detail);
+            return new ToolOutcome(web.Enabled ? Prompts.NoSourcesTryWeb : Prompts.NoSources, detail);
         }
 
         var references = turn.Sources.Add(result.Hits);
         turn.Gate.Open();
-        await turn.EmitAsync(new CitationsEvent(Payloads(turn)), ct);
+        await turn.EmitAsync(turn.CitationsSnapshot(), ct);
         return new ToolOutcome(Format(references), detail);
     }
-
-    private static IReadOnlyList<CitationPayload> Payloads(TurnContext turn) =>
-        turn.Sources.Citations
-            .Select(c => new CitationPayload(c.Marker, c.Title, c.Url, c.Source, c.PublishedLabel))
-            .ToArray();
 
     private static string Format(IReadOnlyList<SourceReference> references)
     {

@@ -1,3 +1,4 @@
+using Quayside.Core.Documents;
 using Quayside.Core.Grounding;
 using Quayside.Core.Retrieval;
 
@@ -10,6 +11,8 @@ public sealed class SourceLedger
 
     public IReadOnlyList<Citation> Citations { get; private set; } = [];
 
+    public bool HasWebSources => hits.Any(IsWeb);
+
     public IReadOnlyList<SourceReference> Add(IReadOnlyList<ScoredChunk> incoming)
     {
         foreach (var hit in incoming)
@@ -20,17 +23,20 @@ public sealed class SourceLedger
             }
         }
 
-        Citations = CitationBuilder.From(hits);
-        var markerByDocument = MarkerByDocument();
+        var ordered = hits.Where(hit => !IsWeb(hit)).Concat(hits.Where(IsWeb)).ToArray();
+        Citations = CitationBuilder.From(ordered);
+        var markerByDocument = MarkerByDocument(ordered);
         return incoming
             .Select(hit => new SourceReference(markerByDocument[hit.Document.Id], hit))
             .ToArray();
     }
 
-    private Dictionary<string, int> MarkerByDocument()
+    private static bool IsWeb(ScoredChunk hit) => hit.Document.Source == SourceKind.Web;
+
+    private Dictionary<string, int> MarkerByDocument(IReadOnlyList<ScoredChunk> ordered)
     {
         var markers = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var hit in hits)
+        foreach (var hit in ordered)
         {
             if (!markers.ContainsKey(hit.Document.Id))
             {

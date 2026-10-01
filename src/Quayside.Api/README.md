@@ -45,3 +45,31 @@ statement against the retrieved tables, so both outcomes are demonstrable:
 a valid `SELECT TOP (5) ...` that executes against `CannedSqlExecutor` and
 returns synthetic rows, and a rejected statement (ask it to delete or update
 something). The rows are placeholders labelled synthetic, not real data.
+
+## Web search fallback
+
+The captured corpus stays the primary grounded source. When
+`search_knowledge` finds nothing relevant, the model may call `search_web` once
+as a fallback. Its results join the turn's source ledger after any corpus
+sources, are cited as `[n]` with `source: "web"`, and are the provider's
+snippets with the real result URL: no page is fetched. Titles and snippets are
+untrusted: they are stripped of markup, control characters and bracketed
+markers, bounded in length, restricted to plain http(s) URLs, and handed to the
+model between `BEGIN UNTRUSTED WEB CONTENT` and `END UNTRUSTED WEB CONTENT`
+lines. Answers that used web sources are never written to the answer cache.
+
+The tool exists only when `IWebSearch` is not `NoWebSearch`. Without a
+`WebSearch:ApiKey` (or in offline mode) the kernel has no `search_web` function,
+the system prompt does not mention it, and startup logs one line saying the
+fallback is disabled and why. `search_web` refuses to run before
+`search_knowledge` has, and `search_knowledge` is closed once a web search ran so
+citation markers stay stable.
+
+## Configuration keys
+
+| key | default | meaning |
+|---|---|---|
+| `WebSearch:ApiKey` | none | provider key; absent means the fallback is disabled |
+| `WebSearch:Provider` | `tavily` | `tavily` or `brave` |
+| `WebSearch:MaxResults` | `5` | results per search, clamped to 1..10 |
+| `WebSearch:Enabled` | `true` | set `false` to disable even when a key is present |

@@ -19,9 +19,18 @@ public sealed partial class ModelProbe : IChatClient
     private readonly ScriptedChatClient inner = new();
     private readonly ConcurrentQueue<int> turnStarts = new();
     private int streamCalls;
+    private readonly ConcurrentQueue<string> toolResults = new();
     private int sqlCalls;
 
     public ModelBehaviour Behaviour { get; set; }
+
+    public bool FallBackToWeb { get; set; }
+
+    public IReadOnlyList<string> ToolResults => toolResults.ToArray();
+
+    public IReadOnlyList<string> ToolNames { get; private set; } = [];
+
+    public string SystemPrompt { get; private set; } = string.Empty;
 
     public string Answer { get; set; } = string.Empty;
 
@@ -59,7 +68,21 @@ public sealed partial class ModelProbe : IChatClient
             turnStarts.Enqueue(conversation.Count);
         }
 
-        var afterTool = conversation[^1].Contents.OfType<FunctionResultContent>().Any();
+        ToolNames = options?.Tools?.Select(t => t.Name).ToArray() ?? [];
+        SystemPrompt = conversation.FirstOrDefault(m => m.Role == ChatRole.System)?.Text ?? SystemPrompt;
+        var lastResult = conversation[^1].Contents.OfType<FunctionResultContent>().FirstOrDefault()?.Result?.ToString();
+        if (lastResult is not null)
+        {
+            toolResults.Enqueue(lastResult);
+        }
+
+        var afterTool = lastResult is not null;
+        if (FallBackToWeb && SearchedCorpusWithoutWeb(conversation, lastResult) && options?.Tools?.FirstOrDefault(t => t.Name.EndsWith("search_web", StringComparison.Ordinal)) is { } web)
+        {
+            yield return new ChatResponseUpdate(ChatRole.Assistant, [new FunctionCallContent(Guid.NewGuid().ToString("N"), web.Name, new Dictionary<string, object?> { ["query"] = "MSC office Turin Italy" })]);
+            yield break;
+        }
+
         if (afterTool && Behaviour == ModelBehaviour.FixedAnswer)
         {
             foreach (var piece in Pieces(Answer))
@@ -95,6 +118,11 @@ public sealed partial class ModelProbe : IChatClient
     public void Dispose()
     {
     }
+
+    private static bool SearchedCorpusWithoutWeb(List<ChatMessage> conversation, string? lastResult) =>
+        lastResult is not null
+        && (lastResult.StartsWith("NO_SOURCES", StringComparison.Ordinal) || lastResult.StartsWith("Sources.", StringComparison.Ordinal))
+        && !conversation.SelectMany(m => m.Contents).OfType<FunctionCallContent>().Any(c => c.Name.EndsWith("search_web", StringComparison.Ordinal));
 
     private async Task StallAsync(CancellationToken ct)
     {

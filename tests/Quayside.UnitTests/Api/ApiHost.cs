@@ -26,6 +26,8 @@ public sealed class ApiSettings
     public int? WarmupWaitSeconds { get; init; }
 
     public bool HoldHydration { get; init; }
+
+    public bool WebEnabled { get; init; }
 }
 
 public sealed class ApiHost(ApiSettings? settings = null) : WebApplicationFactory<Program>
@@ -39,6 +41,8 @@ public sealed class ApiHost(ApiSettings? settings = null) : WebApplicationFactor
     public ModelProbe Model { get; } = new();
 
     public CountingSqlExecutor Sql { get; } = new();
+
+    public FakeWebSearch Web { get; } = new();
 
     public CapturedLogs Logs { get; } = new();
 
@@ -91,6 +95,11 @@ public sealed class ApiHost(ApiSettings? settings = null) : WebApplicationFactor
     {
         services.Replace(ServiceDescriptor.Singleton<IChatClient>(Model));
         services.Replace(ServiceDescriptor.Singleton<IReadOnlySqlExecutor>(Sql));
+        if (settings.WebEnabled)
+        {
+            services.Replace(ServiceDescriptor.Singleton<IWebSearch>(Web));
+        }
+
         services.Replace(ServiceDescriptor.Singleton<IChunkStore>(provider => new GatedChunkStore(
             ActivatorUtilities.CreateInstance<OfflineChunkStore>(provider),
             settings.HoldHydration ? hydration.Task : Task.CompletedTask)));

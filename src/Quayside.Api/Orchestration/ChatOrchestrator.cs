@@ -22,6 +22,8 @@ public sealed class ChatOrchestrator(
     KnowledgeSearch knowledge,
     DatabaseQuery database,
     OperationalLookups operations,
+    WebSearchTool webSearch,
+    WebFallback webFallback,
     IOptions<CacheOptions> cacheOptions,
     ILogger<ChatOrchestrator> logger)
 {
@@ -70,8 +72,12 @@ public sealed class ChatOrchestrator(
     {
         var kernel = new Kernel();
         kernel.Plugins.AddFromObject(new QuaysideTools(turn, toolRunner, knowledge, database, operations), QuaysideTools.PluginName);
+        if (webFallback.Enabled)
+        {
+            kernel.Plugins.AddFromObject(new WebTools(turn, toolRunner, webSearch), WebTools.PluginName);
+        }
 
-        var history = new ChatHistory(Prompts.System);
+        var history = new ChatHistory(Prompts.SystemFor(webFallback.Enabled));
         foreach (var previous in conversation.Turns)
         {
             history.AddUserMessage(previous.User);
@@ -173,6 +179,7 @@ public sealed class ChatOrchestrator(
         var cacheable = conversation.Turns.Count == 0
             && turn.Sources.Citations.Count > 0
             && !turn.OperationalEvidence
+            && !turn.WebFallbackUsed
             && report.Cited > 0
             && report.Uncited == 0;
         if (!cacheable)

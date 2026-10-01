@@ -28,3 +28,10 @@ public interface IReadOnlySqlExecutor
 {
     Task<SqlResultSet> ExecuteAsync(string sql, CancellationToken ct);
 }
+
+public interface IWebSearch
+{
+    Task<IReadOnlyList<WebResult>> SearchAsync(string query, int maxResults, CancellationToken ct);
+}
+
+public sealed record WebResult(string Title, string Url, string Snippet, string? PublishedLabel);

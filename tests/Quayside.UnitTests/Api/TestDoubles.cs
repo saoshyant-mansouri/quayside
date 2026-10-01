@@ -23,6 +23,23 @@ public sealed class CountingSqlExecutor : IReadOnlySqlExecutor
     }
 }
 
+public sealed class FakeWebSearch : IWebSearch
+{
+    private readonly ConcurrentQueue<string> queries = new();
+
+    public IReadOnlyList<WebResult> Results { get; set; } = [];
+
+    public Exception? Failure { get; set; }
+
+    public IReadOnlyList<string> Queries => queries.ToArray();
+
+    public Task<IReadOnlyList<WebResult>> SearchAsync(string query, int maxResults, CancellationToken ct)
+    {
+        queries.Enqueue(query);
+        return Failure is { } failure ? Task.FromException<IReadOnlyList<WebResult>>(failure) : Task.FromResult(Results);
+    }
+}
+
 public sealed class GatedChunkStore(IChunkStore inner, Task gate) : IChunkStore
 {
     public async Task<IReadOnlyList<Document>> LoadDocumentsAsync(CancellationToken ct)

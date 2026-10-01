@@ -3,7 +3,8 @@ namespace Quayside.Core.Documents;
 public enum SourceKind
 {
     LinkedIn,
-    Website
+    Website,
+    Web
 }
 
 public sealed record Document(
