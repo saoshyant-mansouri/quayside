@@ -1,0 +1,17 @@
+environment = "prod"
+image_tag   = "latest"
+ghcr_owner  = "your-github-username"
+
+sql_admin_login          = "replace-me"
+sql_aad_admin_login      = "you@example.com"
+sql_aad_admin_object_id  = "00000000-0000-0000-0000-000000000000"
+sql_aad_admin_tenant_id  = "00000000-0000-0000-0000-000000000000"
+sql_owner_ip_address     = ""
+sql_readonly_login       = "quayside_reader"
+
+alert_emails          = ["you@example.com"]
+monthly_budget_amount = 20
+
+cors_origins = ["https://your-project.vercel.app"]
+
+existing_container_app_environment_id = null
