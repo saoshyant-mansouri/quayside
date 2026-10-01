@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Quayside.Api/Quayside.Api.csproj" />
+    <Project Path="src/Quayside.Core/Quayside.Core.csproj" />
+    <Project Path="src/Quayside.Infrastructure/Quayside.Infrastructure.csproj" />
+    <Project Path="src/Quayside.Ingest/Quayside.Ingest.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Quayside.Evals/Quayside.Evals.csproj" />
+    <Project Path="tests/Quayside.UnitTests/Quayside.UnitTests.csproj" />
+  </Folder>
+</Solution>
