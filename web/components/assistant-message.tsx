@@ -1,15 +1,12 @@
 "use client";
 
-import { Clock, ShieldCheck } from "lucide-react";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
-import { useTechnicalDetails } from "@/hooks/use-technical-details";
+import { ShieldCheck } from "lucide-react";
+import { memo, useCallback, useRef, useState } from "react";
 import type { AssistantMessage as AssistantMessageData } from "@/lib/chat-state";
-import { citedNumbers } from "@/lib/citation-markers";
-import { formatLatency, plural } from "@/lib/format";
 import { OPERATIONAL_TOOLS, isBareEmptyResult, isRefusal } from "@/lib/refusal";
 import { AnswerMarkdown } from "./answer-markdown";
 import { Citations } from "./citations";
-import { SqlDisclosure } from "./sql-disclosure";
+import { DatabaseNote } from "./database-note";
 import { ToolStatus } from "./tool-status";
 
 const LIST_EDGE_PX = 8;
@@ -58,60 +55,17 @@ function RefusalNote() {
   );
 }
 
-function MessageFooter({
-  message,
-  technical,
-}: {
-  message: AssistantMessageData;
-  technical: boolean;
-}) {
-  const { done, tools, sql, citations } = message;
+function MessageFooter({ message }: { message: AssistantMessageData }) {
+  const { done, tools, sql } = message;
   if (!done) return null;
   const uncited = done.grounding?.uncited ?? 0;
-  const cited = done.grounding?.cited ?? 0;
-  const refused = isRefusal(message);
   const usedOperationalData =
     Boolean(sql) || tools.some((tool) => OPERATIONAL_TOOLS.has(tool.name));
 
-  if (!technical && uncited === 0 && !usedOperationalData) return null;
+  if (uncited === 0 && !usedOperationalData) return null;
 
   return (
     <footer className="space-y-2.5 border-t border-border pt-3">
-      {technical ? (
-        <ul className="flex flex-wrap items-center gap-2 text-xs">
-          <li className="flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-normal-text">
-            <Clock aria-hidden="true" size={12} />
-            <span>
-              Answered in{" "}
-              <span className="font-mono font-semibold tabular-nums text-foreground">
-                {formatLatency(done.latencyMs)}
-              </span>
-            </span>
-          </li>
-          {done.cached ? (
-            <li
-              title="Served from the semantic answer cache"
-              className="tone-olive rounded-full px-2.5 py-1 font-semibold"
-            >
-              Cached
-            </li>
-          ) : null}
-          {uncited > 0 ? (
-            <li className="tone-blush rounded-full px-2.5 py-1 font-semibold">
-              {plural(uncited, "uncited statement")}
-            </li>
-          ) : cited > 0 && !refused ? (
-            <li className="tone-sage rounded-full px-2.5 py-1 font-medium">
-              Every statement cited ({cited})
-            </li>
-          ) : null}
-          {citations.length === 0 ? (
-            <li className="rounded-full border border-border px-2.5 py-1 text-normal-text">
-              No sources retrieved
-            </li>
-          ) : null}
-        </ul>
-      ) : null}
       {uncited > 0 ? (
         <p className="text-[13px] leading-snug text-foreground">
           {uncited === 1
@@ -134,10 +88,8 @@ type AssistantMessageProps = { message: AssistantMessageData };
 function AssistantMessageView({ message }: AssistantMessageProps) {
   const [activeNumber, setActiveNumber] = useState<number | null>(null);
   const cardsRef = useRef(new Map<number, HTMLAnchorElement>());
-  const { enabled: technical } = useTechnicalDetails();
   const streaming = message.phase === "streaming";
   const hasCitations = message.citations.length > 0;
-  const citedInAnswer = useMemo(() => citedNumbers(message.text), [message.text]);
 
   const registerCard = useCallback((n: number, element: HTMLAnchorElement | null) => {
     if (element) cardsRef.current.set(n, element);
@@ -183,19 +135,17 @@ function AssistantMessageView({ message }: AssistantMessageProps) {
               onSelectCitation={selectCitation}
             />
           ) : null}
-          {message.sql ? <SqlDisclosure result={message.sql} technical={technical} /> : null}
+          {message.sql ? <DatabaseNote result={message.sql} /> : null}
           {isRefusal(message) ? <RefusalNote /> : null}
           <PhaseNote message={message} />
-          <MessageFooter message={message} technical={technical} />
+          <MessageFooter message={message} />
         </div>
 
         {hasCitations ? (
           <div className="min-w-0 md:sticky md:top-24 md:col-start-2 md:row-start-1 md:self-start">
             <Citations
               citations={message.citations}
-              citedInAnswer={citedInAnswer}
               activeNumber={activeNumber}
-              settled={technical && message.phase !== "streaming"}
               registerCard={registerCard}
             />
           </div>

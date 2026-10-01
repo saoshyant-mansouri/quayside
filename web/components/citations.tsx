@@ -4,9 +4,7 @@ import type { Citation } from "@/lib/types";
 
 type CitationsProps = {
   citations: Citation[];
-  citedInAnswer: Set<number>;
   activeNumber: number | null;
-  settled: boolean;
   registerCard: (n: number, element: HTMLAnchorElement | null) => void;
 };
 
@@ -18,12 +16,10 @@ const SOURCE_LABEL: Record<Citation["source"], string> = {
 type CardProps = {
   citation: Citation;
   active: boolean;
-  citedInAnswer: boolean;
-  settled: boolean;
 };
 
 const CitationCard = forwardRef<HTMLAnchorElement, CardProps>(function CitationCard(
-  { citation, active, citedInAnswer, settled },
+  { citation, active },
   ref,
 ) {
   const published = formatDay(citation.publishedAt);
@@ -57,13 +53,6 @@ const CitationCard = forwardRef<HTMLAnchorElement, CardProps>(function CitationC
           {published ? <span>{published}</span> : null}
           {host ? <span className="truncate text-foreground/60">{host}</span> : null}
         </span>
-        {settled ? (
-          <span
-            className={`mt-1.5 block text-[11px] font-medium ${citedInAnswer ? "text-foreground" : "text-foreground/60"}`}
-          >
-            {citedInAnswer ? "Cited in the answer" : "Retrieved, not cited"}
-          </span>
-        ) : null}
       </span>
     </a>
   );
@@ -71,9 +60,7 @@ const CitationCard = forwardRef<HTMLAnchorElement, CardProps>(function CitationC
 
 export function Citations({
   citations,
-  citedInAnswer,
   activeNumber,
-  settled,
   registerCard,
 }: CitationsProps) {
   return (
@@ -98,8 +85,6 @@ export function Citations({
                 ref={(element) => registerCard(citation.n, element)}
                 citation={citation}
                 active={activeNumber === citation.n}
-                citedInAnswer={citedInAnswer.has(citation.n)}
-                settled={settled}
               />
             </li>
           ))}

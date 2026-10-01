@@ -13,12 +13,7 @@ export function formatDay(iso: string | null | undefined): string | null {
   return Number.isNaN(date.getTime()) ? null : dayFormat.format(date);
 }
 
-export const formatCount = (value: number) => countFormat.format(value);
-
-export function formatLatency(milliseconds: number): string {
-  if (milliseconds < 1000) return `${Math.round(milliseconds)} ms`;
-  return `${(milliseconds / 1000).toFixed(2)} s`;
-}
+const formatCount = (value: number) => countFormat.format(value);
 
 export function hostOf(url: string): string {
   try {
@@ -30,10 +25,4 @@ export function hostOf(url: string): string {
 
 export function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return `${formatCount(count)} ${count === 1 ? singular : pluralForm}`;
-}
-
-export function formatCell(value: unknown): string {
-  if (value === null || value === undefined) return "NULL";
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
 }

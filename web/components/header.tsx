@@ -33,7 +33,7 @@ export function Header() {
       </nav>
       <div className="tone-blush mt-[4.25rem]">
         <p className="mx-auto max-w-5xl px-4 py-2.5 text-[13px] leading-snug sm:px-6">
-          <strong className="font-semibold">Independent technical demonstration.</strong> Not
+          <strong className="font-semibold">Independent demonstration.</strong> Not
           affiliated with, endorsed by, or operated by MSC. Answers come only from public
           sources and cite each one. Any shipment or operational data shown is synthetic.
         </p>

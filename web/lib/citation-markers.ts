@@ -16,10 +16,6 @@ export function citationNumberFromHref(href: string | undefined): number | null 
   return Number.isInteger(n) ? n : null;
 }
 
-export function citedNumbers(text: string): Set<number> {
-  return new Set([...text.matchAll(MARKER)].map((match) => Number(match[1])));
-}
-
 export function withoutDanglingMarker(text: string): string {
   return text.replace(/\[\d{0,3}$/, "");
 }

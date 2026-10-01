@@ -27,9 +27,6 @@ export type Grounding = { cited: number; uncited: number };
 
 export type DoneEvent = {
   conversationId: string;
-  latencyMs: number;
-  cached: boolean;
-  usage?: { prompt: number; completion: number };
   grounding?: Grounding;
 };
 
@@ -40,13 +37,5 @@ export type ChatEvent =
   | { type: "token"; data: { text: string } }
   | { type: "done"; data: DoneEvent }
   | { type: "error"; data: { message: string } };
-
-export type Health = {
-  status: string;
-  chunks: number;
-  documents: number;
-  corpusCapturedAt: string;
-  indexWarm: boolean;
-};
 
 export type Example = { label: string; question: string };

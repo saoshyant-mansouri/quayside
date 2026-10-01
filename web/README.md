@@ -5,7 +5,7 @@ TypeScript strict, Tailwind v4. It talks to the API only through same-origin
 `/api` calls. Next.js rewrites those to the Azure API, so no API hostname is
 ever present in client code.
 
-> MSC RAG is an independent technical demonstration. It is not affiliated
+> MSC RAG is an independent demonstration. It is not affiliated
 > with, endorsed by, or operated by MSC. Any operational or shipment data it
 > shows is synthetic.
 
@@ -47,12 +47,12 @@ lives in `app/mock-api/` and emits the same SSE contract as the real API
 |---|---|
 | `delete`, `drop`, `update`, `remove` | `sql` event with `rejected` set |
 | `atlantis` | `query_database` with a zero-row result |
-| `port` | tool calls, citations, SQL with a result grid |
+| `port` | tool calls, citations, a `sql` event with rows |
 | `track`, `mscu` | operational tool with `uncited: 2` grounding |
 | `profit` | refusal with no citations |
 | anything else | cited RAG answer |
 
-Asking the same question twice returns `cached: true`. Adding `truncate` to the
+Asking the same question twice returns `cached: true` on the `done` event. Adding `truncate` to the
 question ends the stream without a `done` event. The mock deliberately splits
 events across chunk boundaries, uses CRLF for one event and multi-line `data:`
 for another, so the parser is exercised against awkward input.
@@ -120,7 +120,7 @@ The visual language is copied from the author's personal site
   Tailwind colours plus the `tone-*` helper classes.
 - Fonts: Inter for text and Archivo (variable width axis) for display, both via
   `next/font/google`. `.font-display` widens the type to 112%, and to 125% from
-  768px. There is no monospace font to load; SQL and numbers use the system
+  768px. There is no monospace font to load; the source numbers use the system
   monospace stack.
 - Dark mode is class based: `@custom-variant dark (&:where(.dark, .dark *))`.
   `lib/theme.ts` holds a tiny script, inlined in `<head>`, that reads
@@ -129,39 +129,38 @@ The visual language is copied from the author's personal site
   `components/theme-toggle.tsx` flip the class and persist the choice. It is the
   only inline script; model output never reaches `dangerouslySetInnerHTML`.
 - `olive` is the single accent. It is used as a fill with `ink` text (the Ask
-  button, inline `[n]` markers, the active source, the "cached" chip, the Technical details switch) and never as text on the page background, where its contrast is too low.
+  button, inline `[n]` markers and the active source) and never as text on the page background, where its contrast is too low.
   `blush` carries the persistent disclaimer and warnings; `sage` carries the
-  refusal and rejected-SQL states. Focus rings use `--foreground` for contrast.
+  refusal and refused-query states. Focus rings use `--foreground` for contrast.
 - No animation library. The only motion is CSS transitions, all collapsed by the
   `prefers-reduced-motion` rule at the bottom of `globals.css`.
 
-## Technical details
+## What is deliberately not shown
 
-The interface is written for someone who has never heard of RAG. Everything a
-developer would want to inspect is behind one quiet switch in the footer,
-**Technical details**, off by default and remembered in
-`localStorage["technical-details"]` (`hooks/use-technical-details.ts`, a
-`useSyncExternalStore` over that key, so every message and the footer react
-together and other tabs follow).
+The interface is written for someone who has never heard of RAG, so nothing a
+developer would inspect is rendered, and there is no switch to reveal it. The
+API still sends all of it; the client either ignores it or consumes it without
+showing it:
 
-| | off (default) | on |
-|---|---|---|
-| generated SQL, result grid, row count | hidden | shown in the disclosure |
-| per-answer latency, cached, grounding and "no sources" chips | hidden | shown |
-| "Cited in the answer" / "Retrieved, not cited" on source cards | hidden | shown |
-| corpus size and capture date | not fetched | footer, from `GET /api/health` |
+- the generated SQL, the result grid and the row count (the `sql` event is still
+  read, to decide between the zero-row line, the rejected-query note and the
+  synthetic-data note)
+- per-answer latency and the cache flag (the `done` event)
+- grounding and citation counts (only the plain caution for uncited sentences
+  is shown, because it changes how a reader should treat the answer)
+- "Cited in the answer" / "Retrieved, not cited" on source cards
+- corpus size and capture date (`GET /api/health` is not called)
+- the technology description in the footer, which carries only the author
+  credit and the link to the source
 
-These stay on regardless, because they are meaning rather than diagnostics: the
-sources panel and inline `[n]` markers, the synthetic-data note on operational
-answers, the independent-demonstration banner, the refusal explainer, the
-safety-check card when a query is rejected, and the plain "this could not be tied
-to a source" caution when the grounding check finds uncited sentences.
-
-The header no longer shows corpus counts. `/api/health` is only requested when the
-switch is on.
+What stays is meaning for a reader: the sources panel and inline `[n]` markers,
+the synthetic-data note on operational answers, the independent-demonstration
+banner, the refusal explainer, the plain note when a query is refused or matches
+nothing, and the tool status line while an answer is produced.
 
 A database answer with zero rows shows "The demo database has no matching
-records for that." and never an empty grid. If the model's own text is just a
+records for that." (`components/database-note.tsx`). A refused query shows a
+plain "could not be run" note and never the validator's wording. If the model's own text is just a
 short "0 rows" sentence (`isBareEmptyResult` in `lib/refusal.ts`), it is
 replaced by that line rather than repeated beside it.
 

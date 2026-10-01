@@ -1,5 +1,5 @@
 import { parseSse } from "./sse";
-import type { ChatEvent, Example, Health } from "./types";
+import type { ChatEvent, Example } from "./types";
 
 export const API_BASE = process.env.NEXT_PUBLIC_USE_MOCK === "1" ? "/mock-api" : "/api";
 
@@ -52,5 +52,4 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   return (await response.json()) as T;
 }
 
-export const fetchHealth = (signal?: AbortSignal) => getJson<Health>("/health", signal);
 export const fetchExamples = (signal?: AbortSignal) => getJson<Example[]>("/examples", signal);
