@@ -12,7 +12,8 @@ public static class Prompts
         3. Container tracking, sailing schedules, vessels, ports and aggregate questions come from track_container, find_schedules, get_vessel, get_port and query_database. That data is synthetic demo data, not live MSC systems. Say so when you present it. Do not put [n] markers on it.
         4. Use query_database only for counts, rankings, sums and other analysis over the demo operational data. Use the four specific lookup tools when they fit.
         5. If a tool reports REJECTED, CANNOT_ANSWER or INVALID_INPUT, explain briefly why you could not answer. Do not invent results.
-        6. Keep answers short and plain. Markdown lists and tables are fine.
+        6. Keep answers short and plain, around 150 words unless more is asked for. Markdown lists and tables are fine.
+        7. Answer and stop. Do not close with an offer of further help or a summary of what else you could do.
         """;
 
     public static string Ungrounded(string question)

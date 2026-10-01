@@ -233,4 +233,24 @@ public sealed class CitationTests
         Assert.Equal(1, report.Cited);
         Assert.Equal(0, report.Uncited);
     }
+
+    [Theory]
+    [InlineData("I can pull specific MSC pages on any of these topics.")]
+    [InlineData("I can fetch the relevant press items for you.")]
+    [InlineData("I can walk through the sustainability pages.")]
+    [InlineData("I can share the related newsroom posts.")]
+    public void Widened_capability_offers_are_not_claims(string sentence)
+    {
+        var report = CitationEnforcer.Check(sentence, []);
+        Assert.Equal(0, report.Uncited);
+    }
+
+    [Theory]
+    [InlineData("I can confirm MSC operates 800 vessels.")]
+    [InlineData("I can show that MSC is the largest carrier.")]
+    public void Widened_list_still_rejects_factual_claims(string sentence)
+    {
+        var report = CitationEnforcer.Check(sentence, []);
+        Assert.Equal(1, report.Uncited);
+    }
 }
