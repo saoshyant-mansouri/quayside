@@ -1,3 +1,4 @@
+using Quayside.Core.Sql;
 using System.Globalization;
 using System.Text;
 
@@ -11,10 +12,21 @@ public static class SeedEmitter
 
     private static readonly Dictionary<string, int> RowCounts = new()
     {
-        ["Containers"] = 120, ["Bookings"] = 100, ["Customers"] = 30, ["Vessels"] = 25, ["Voyages"] = 60,
-        ["Ports"] = 20, ["PortCalls"] = 150, ["SailingSchedules"] = 120, ["ContainerMovements"] = 200,
-        ["ReeferReadings"] = 150, ["Invoices"] = 80, ["InvoiceLines"] = 200, ["CustomsDeclarations"] = 60,
-        ["BillsOfLading"] = 100, ["Countries"] = 5,
+        ["Containers"] = 120,
+        ["Bookings"] = 100,
+        ["Customers"] = 30,
+        ["Vessels"] = 25,
+        ["Voyages"] = 60,
+        ["Ports"] = 20,
+        ["PortCalls"] = 150,
+        ["SailingSchedules"] = 120,
+        ["ContainerMovements"] = 200,
+        ["ReeferReadings"] = 150,
+        ["Invoices"] = 80,
+        ["InvoiceLines"] = 200,
+        ["CustomsDeclarations"] = 60,
+        ["BillsOfLading"] = 100,
+        ["Countries"] = 5,
     };
 
     private static readonly (string Code, string Name)[] Countries =

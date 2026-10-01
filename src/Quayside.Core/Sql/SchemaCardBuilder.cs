@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Quayside.Ingest.Schema;
+namespace Quayside.Core.Sql;
 
 public sealed class SchemaCardBuilder
 {

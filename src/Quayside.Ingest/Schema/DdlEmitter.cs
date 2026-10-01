@@ -1,3 +1,4 @@
+using Quayside.Core.Sql;
 using System.Text;
 
 namespace Quayside.Ingest.Schema;

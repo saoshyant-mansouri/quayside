@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Quayside.Ingest.Schema;
+namespace Quayside.Core.Sql;
 
 public sealed record ReferenceSpec(string Table, string Column, bool Self = false);
 
@@ -32,12 +32,6 @@ public sealed record SchemaSpec(int SchemaVersion, IReadOnlyList<ContextSpec> Co
     public static SchemaSpec Load(Stream stream) =>
         JsonSerializer.Deserialize(stream, SchemaJson.Default.SchemaSpec)
         ?? throw new InvalidDataException("Schema document is empty.");
-
-    public static SchemaSpec Load(string path)
-    {
-        using var stream = File.OpenRead(path);
-        return Load(stream);
-    }
 }
 
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
