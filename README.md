@@ -106,7 +106,6 @@ Next.js 15 / React 19 / Tailwind 4 on Vercel · GitHub Actions, with an
 
 ## Layout
 
-    roadmap/01-architecture.md   the authoritative plan
     docs/                        job ads, requirements map, API contract
     src/Quayside.Core            records, ports, retrieval, NL->SQL. No I/O.
     src/Quayside.Infrastructure  Azure OpenAI, SQL, vector index

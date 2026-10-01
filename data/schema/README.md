@@ -5,8 +5,8 @@ database: 14 bounded contexts, 226 tables, 1,291 columns and 451 foreign keys
 (3 of them self-references). It exists to make the NL to SQL centrepiece
 honest. At this size the whole DDL cannot go into a prompt, so the pipeline has
 to retrieve table description cards first, expand one hop along the foreign-key
-graph, and only then build a small DDL prompt. See
-`roadmap/01-architecture.md`, "The centrepiece".
+graph, and only then build a small DDL prompt. The root `README.md` explains
+why that is the whole point of the exercise.
 
 It is **data, not code**. Nothing in this directory is compiled. The generator
 that reads it lives in `src/Quayside.Ingest/Schema/`.

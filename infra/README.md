@@ -1,10 +1,8 @@
 # Infrastructure
 
-Terraform for the Quayside Azure topology described in
-[roadmap/01-architecture.md](../roadmap/01-architecture.md), section
-"Infrastructure (francecentral)". It mirrors the conventions of the owner's
-calcio deployment: partial backend config, `local.prefix`, one module per
-concern, cost discipline first.
+Terraform for the Quayside Azure topology. It mirrors the conventions of an
+earlier Azure deployment on the same subscription: partial backend config,
+`local.prefix`, one module per concern, cost discipline first.
 
 ## Layout
 

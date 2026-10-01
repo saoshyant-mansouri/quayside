@@ -7,7 +7,6 @@ web/
 infra/
 tests/
 docs/
-roadmap/
 **/.terraform/
 **/*.tfstate*
 **/*.user
